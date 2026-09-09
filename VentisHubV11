@@ -1,0 +1,1498 @@
+--[[
+==============================================================
+                    VENTIS HUB V11
+               AIM • VISUAL • FPS • MOVEMENT
+                       by ventis321
+==============================================================
+
+LocalScript:
+StarterPlayer > StarterPlayerScripts
+
+ABAS:
+🎯 AIM
+👁 VISUAL
+⚡ FPS
+🏃 MOVEMENT
+
+ANTI-LAG:
+🚀 MEGA BOOST
+🔄 RESTAURAR GRÁFICOS
+==============================================================
+]]
+
+--==============================================================
+-- SERVICES
+--==============================================================
+
+local Players = game:GetService("Players")
+local RunService = game:GetService("RunService")
+local UserInputService = game:GetService("UserInputService")
+local Lighting = game:GetService("Lighting")
+
+local LocalPlayer = Players.LocalPlayer
+local PlayerGui = LocalPlayer:WaitForChild("PlayerGui")
+local Terrain = workspace.Terrain
+
+--==============================================================
+-- CONFIG
+--==============================================================
+
+local Config = {
+    AimAssist = false,
+    FOV = 80,
+    FOVEnabled = true,
+    AimStrength = 1,
+    WallCheck = true,
+    AliveCheck = true,
+
+    ESP = false,
+    WallHighlight = false,
+    Tracers = false,
+    FPSCounter = true,
+
+    WalkSpeed = false,
+    Speed = 16,
+    JumpPower = false,
+    Jump = 50,
+
+    MegaBoost = false
+}
+
+--==============================================================
+-- GRAPHICS SAVE SYSTEM
+--==============================================================
+
+local Saved = {}
+
+local function Save(obj, property)
+    if not obj then return end
+
+    Saved[obj] = Saved[obj] or {}
+
+    if Saved[obj][property] == nil then
+        local ok, value = pcall(function()
+            return obj[property]
+        end)
+
+        if ok then
+            Saved[obj][property] = value
+        end
+    end
+end
+
+--==============================================================
+-- MEGA BOOST FUNCTIONS
+--==============================================================
+
+local function RemoveTextures(obj)
+
+    if obj:IsA("Decal") or obj:IsA("Texture") then
+        Save(obj, "Transparency")
+        obj.Transparency = 1
+
+    elseif obj:IsA("MeshPart") then
+        Save(obj, "TextureID")
+        obj.TextureID = ""
+
+    elseif obj:IsA("SpecialMesh") then
+        Save(obj, "TextureId")
+        obj.TextureId = ""
+    end
+end
+
+local function RemoveParticles(obj)
+
+    if obj:IsA("ParticleEmitter")
+        or obj:IsA("Trail")
+        or obj:IsA("Beam")
+        or obj:IsA("Fire")
+        or obj:IsA("Smoke")
+        or obj:IsA("Sparkles") then
+
+        Save(obj, "Enabled")
+        obj.Enabled = false
+    end
+end
+
+local function RemoveLights(obj)
+
+    if obj:IsA("PointLight")
+        or obj:IsA("SpotLight")
+        or obj:IsA("SurfaceLight") then
+
+        Save(obj, "Enabled")
+        obj.Enabled = false
+    end
+end
+
+local function LowMaterial(obj)
+
+    if obj:IsA("BasePart") then
+        Save(obj, "Material")
+        obj.Material = Enum.Material.SmoothPlastic
+    end
+end
+
+local function DisableLighting()
+
+    Save(Lighting, "GlobalShadows")
+    Lighting.GlobalShadows = false
+
+    Save(Lighting, "FogStart")
+    Save(Lighting, "FogEnd")
+
+    Lighting.FogStart = 1000000
+    Lighting.FogEnd = 1000000
+end
+
+local function DisableEffects()
+
+    for _, obj in ipairs(Lighting:GetChildren()) do
+
+        if obj:IsA("PostEffect") then
+            Save(obj, "Enabled")
+            obj.Enabled = false
+
+        elseif obj:IsA("Atmosphere") then
+            Save(obj, "Density")
+            obj.Density = 0
+        end
+    end
+end
+
+local function DisableWater()
+
+    Save(Terrain, "WaterWaveSize")
+    Save(Terrain, "WaterWaveSpeed")
+    Save(Terrain, "WaterReflectance")
+    Save(Terrain, "WaterTransparency")
+
+    Terrain.WaterWaveSize = 0
+    Terrain.WaterWaveSpeed = 0
+    Terrain.WaterReflectance = 0
+    Terrain.WaterTransparency = 1
+end
+
+local function MegaBoost()
+
+    DisableLighting()
+    DisableEffects()
+    DisableWater()
+
+    for _, obj in ipairs(workspace:GetDescendants()) do
+        RemoveTextures(obj)
+        RemoveParticles(obj)
+        RemoveLights(obj)
+        LowMaterial(obj)
+    end
+end
+
+local function RestoreGraphics()
+
+    for obj, properties in pairs(Saved) do
+
+        if obj and obj.Parent then
+
+            for property, value in pairs(properties) do
+
+                pcall(function()
+                    obj[property] = value
+                end)
+
+            end
+        end
+    end
+
+    Saved = {}
+end
+
+workspace.DescendantAdded:Connect(function(obj)
+
+    if not Config.MegaBoost then
+        return
+    end
+
+    task.defer(function()
+
+        if not obj or not obj.Parent then
+            return
+        end
+
+        RemoveTextures(obj)
+        RemoveParticles(obj)
+        RemoveLights(obj)
+        LowMaterial(obj)
+
+    end)
+
+end)
+
+--==============================================================
+-- GUI
+--==============================================================
+
+local Gui = Instance.new("ScreenGui")
+Gui.Name = "VentisHubV11"
+Gui.ResetOnSpawn = false
+Gui.IgnoreGuiInset = true
+Gui.DisplayOrder = 10
+Gui.Parent = PlayerGui
+
+--==============================================================
+-- FLOATING BUTTON
+--==============================================================
+
+local Floating = Instance.new("TextButton")
+
+Floating.Size = UDim2.fromOffset(50,50)
+Floating.Position = UDim2.new(0,15,0.5,-25)
+
+Floating.BackgroundColor3 = Color3.fromRGB(10,10,13)
+Floating.BorderSizePixel = 0
+
+Floating.Text = "V"
+Floating.TextColor3 = Color3.fromRGB(255,255,255)
+Floating.TextSize = 23
+Floating.Font = Enum.Font.GothamBold
+
+Floating.Parent = Gui
+
+local FloatCorner = Instance.new("UICorner")
+FloatCorner.CornerRadius = UDim.new(1,0)
+FloatCorner.Parent = Floating
+
+local FloatStroke = Instance.new("UIStroke")
+FloatStroke.Color = Color3.fromRGB(255,45,45)
+FloatStroke.Thickness = 2
+FloatStroke.Parent = Floating
+
+--==============================================================
+-- MAIN PANEL
+--==============================================================
+
+local Main = Instance.new("Frame")
+
+Main.Size = UDim2.fromOffset(330,430)
+Main.Position = UDim2.new(0.5,-165,0.5,-215)
+
+Main.BackgroundColor3 = Color3.fromRGB(8,8,11)
+Main.BorderSizePixel = 0
+
+Main.Parent = Gui
+
+local MainCorner = Instance.new("UICorner")
+MainCorner.CornerRadius = UDim.new(0,16)
+MainCorner.Parent = Main
+
+local MainStroke = Instance.new("UIStroke")
+MainStroke.Color = Color3.fromRGB(48,48,55)
+MainStroke.Parent = Main
+
+--==============================================================
+-- HEADER
+--==============================================================
+
+local Header = Instance.new("Frame")
+
+Header.Size = UDim2.new(1,0,0,65)
+Header.BackgroundTransparency = 1
+Header.Parent = Main
+
+local Title = Instance.new("TextLabel")
+
+Title.Size = UDim2.new(1,-60,0,35)
+Title.Position = UDim2.fromOffset(16,5)
+
+Title.BackgroundTransparency = 1
+Title.Text = "VENTIS HUB"
+
+Title.TextColor3 = Color3.fromRGB(255,255,255)
+Title.TextSize = 21
+Title.Font = Enum.Font.GothamBold
+
+Title.TextXAlignment = Enum.TextXAlignment.Left
+Title.Parent = Header
+
+local Subtitle = Instance.new("TextLabel")
+
+Subtitle.Size = UDim2.new(1,-60,0,18)
+Subtitle.Position = UDim2.fromOffset(17,38)
+
+Subtitle.BackgroundTransparency = 1
+Subtitle.Text = "V11 • AIM + MEGA BOOST"
+
+Subtitle.TextColor3 = Color3.fromRGB(120,120,130)
+Subtitle.TextSize = 9
+Subtitle.Font = Enum.Font.GothamMedium
+
+Subtitle.TextXAlignment = Enum.TextXAlignment.Left
+Subtitle.Parent = Header
+
+local Close = Instance.new("TextButton")
+
+Close.Size = UDim2.fromOffset(34,34)
+Close.Position = UDim2.new(1,-45,0,12)
+
+Close.BackgroundColor3 = Color3.fromRGB(30,30,36)
+Close.BorderSizePixel = 0
+
+Close.Text = "×"
+Close.TextColor3 = Color3.fromRGB(230,230,235)
+Close.TextSize = 22
+Close.Font = Enum.Font.GothamBold
+
+Close.Parent = Header
+
+local CloseCorner = Instance.new("UICorner")
+CloseCorner.CornerRadius = UDim.new(0,9)
+CloseCorner.Parent = Close
+
+--==============================================================
+-- FPS STATUS
+--==============================================================
+
+local FPS = Instance.new("TextLabel")
+
+FPS.Size = UDim2.fromOffset(90,26)
+FPS.Position = UDim2.new(1,-105,0,68)
+
+FPS.BackgroundColor3 = Color3.fromRGB(20,20,25)
+FPS.BorderSizePixel = 0
+
+FPS.Text = "FPS: --"
+FPS.TextColor3 = Color3.fromRGB(100,255,140)
+FPS.TextSize = 12
+FPS.Font = Enum.Font.GothamBold
+
+FPS.Parent = Main
+
+local FPSCorner = Instance.new("UICorner")
+FPSCorner.CornerRadius = UDim.new(0,8)
+FPSCorner.Parent = FPS
+
+--==============================================================
+-- TAB BAR
+--==============================================================
+
+local TabBar = Instance.new("Frame")
+
+TabBar.Size = UDim2.new(1,-20,0,42)
+TabBar.Position = UDim2.fromOffset(10,100)
+
+TabBar.BackgroundTransparency = 1
+TabBar.Parent = Main
+
+local TabLayout = Instance.new("UIGridLayout")
+
+TabLayout.CellSize = UDim2.new(0.25,-4,1,0)
+TabLayout.CellPadding = UDim2.fromOffset(5,0)
+
+TabLayout.Parent = TabBar
+
+--==============================================================
+-- CONTENT
+--==============================================================
+
+local Content = Instance.new("ScrollingFrame")
+
+Content.Size = UDim2.new(1,-20,1,-155)
+Content.Position = UDim2.fromOffset(10,150)
+
+Content.BackgroundTransparency = 1
+Content.BorderSizePixel = 0
+
+Content.ScrollBarThickness = 3
+Content.AutomaticCanvasSize = Enum.AutomaticSize.Y
+
+Content.Parent = Main
+
+local ContentLayout = Instance.new("UIListLayout")
+
+ContentLayout.Padding = UDim.new(0,7)
+ContentLayout.SortOrder = Enum.SortOrder.LayoutOrder
+
+ContentLayout.Parent = Content
+
+--==============================================================
+-- HELPERS
+--==============================================================
+
+local function ClearContent()
+
+    for _, child in ipairs(Content:GetChildren()) do
+
+        if child:IsA("GuiObject") then
+            child:Destroy()
+        end
+
+    end
+end
+
+local function Button(text, callback)
+
+    local B = Instance.new("TextButton")
+
+    B.Size = UDim2.new(1,-3,0,40)
+
+    B.BackgroundColor3 = Color3.fromRGB(28,28,34)
+    B.BorderSizePixel = 0
+
+    B.Text = text
+    B.TextColor3 = Color3.fromRGB(235,235,240)
+    B.TextSize = 13
+    B.Font = Enum.Font.GothamMedium
+
+    B.AutoButtonColor = false
+    B.Parent = Content
+
+    local Corner = Instance.new("UICorner")
+    Corner.CornerRadius = UDim.new(0,9)
+    Corner.Parent = B
+
+    B.MouseEnter:Connect(function()
+        B.BackgroundColor3 = Color3.fromRGB(43,43,50)
+    end)
+
+    B.MouseLeave:Connect(function()
+        B.BackgroundColor3 = Color3.fromRGB(28,28,34)
+    end)
+
+    B.MouseButton1Click:Connect(callback)
+
+    return B
+end
+
+local function Toggle(text, state, callback)
+
+    local B
+
+    local function Update()
+
+        B.Text =
+            text ..
+            "   [" ..
+            (state and "ON" or "OFF") ..
+            "]"
+
+        B.TextColor3 =
+            state
+            and Color3.fromRGB(255,75,75)
+            or Color3.fromRGB(235,235,240)
+
+    end
+
+    B = Button("",function()
+
+        state = not state
+
+        callback(state)
+
+        Update()
+
+    end)
+
+    Update()
+
+    return B
+end
+
+--==============================================================
+-- FOV
+--==============================================================
+
+local FOVCircle = Instance.new("Frame")
+
+FOVCircle.AnchorPoint = Vector2.new(0.5,0.5)
+FOVCircle.Position = UDim2.fromScale(0.5,0.5)
+
+FOVCircle.Size =
+    UDim2.fromOffset(
+        Config.FOV*2,
+        Config.FOV*2
+    )
+
+FOVCircle.BackgroundTransparency = 1
+FOVCircle.Visible = false
+
+FOVCircle.Parent = Gui
+
+local FOVCorner = Instance.new("UICorner")
+FOVCorner.CornerRadius = UDim.new(1,0)
+FOVCorner.Parent = FOVCircle
+
+local FOVStroke = Instance.new("UIStroke")
+FOVStroke.Color = Color3.fromRGB(255,40,40)
+FOVStroke.Thickness = 2
+FOVStroke.Parent = FOVCircle
+
+--==============================================================
+-- AIM TAB
+--==============================================================
+
+local function ShowAim()
+
+    ClearContent()
+
+    Toggle(
+        "🎯 Aim Assist",
+        Config.AimAssist,
+        function(value)
+
+            Config.AimAssist = value
+
+            FOVCircle.Visible =
+                value and Config.FOVEnabled
+
+        end
+    )
+
+    Button(
+        "⭕ FOV  •  "..Config.FOV,
+        function()
+
+            Config.FOV += 10
+
+            if Config.FOV > 200 then
+                Config.FOV = 30
+            end
+
+            FOVCircle.Size =
+                UDim2.fromOffset(
+                    Config.FOV*2,
+                    Config.FOV*2
+                )
+
+            ShowAim()
+
+        end
+    )
+
+    Toggle(
+        "⭕ FOV Circle",
+        Config.FOVEnabled,
+        function(value)
+
+            Config.FOVEnabled = value
+
+            FOVCircle.Visible =
+                value and Config.AimAssist
+
+        end
+    )
+
+    Button(
+        "🎯 Aim Strength  •  "..math.floor(Config.AimStrength*100).."%",
+        function()
+
+            Config.AimStrength += 0.1
+
+            if Config.AimStrength > 1 then
+                Config.AimStrength = 0.1
+            end
+
+            ShowAim()
+
+        end
+    )
+
+    Toggle(
+        "🧱 Wall Check",
+        Config.WallCheck,
+        function(value)
+            Config.WallCheck = value
+        end
+    )
+
+    Toggle(
+        "❤️ Alive Check",
+        Config.AliveCheck,
+        function(value)
+            Config.AliveCheck = value
+        end
+    )
+end
+
+--==============================================================
+-- VISUAL TAB
+--==============================================================
+
+local function ShowVisual()
+
+    ClearContent()
+
+    Toggle(
+        "👁 ESP",
+        Config.ESP,
+        function(value)
+            Config.ESP = value
+        end
+    )
+
+    Toggle(
+        "🧱 Wall Highlight",
+        Config.WallHighlight,
+        function(value)
+            Config.WallHighlight = value
+        end
+    )
+
+    Toggle(
+        "📍 Tracers",
+        Config.Tracers,
+        function(value)
+            Config.Tracers = value
+        end
+    )
+
+    Toggle(
+        "📊 FPS Counter",
+        Config.FPSCounter,
+        function(value)
+
+            Config.FPSCounter = value
+            FPS.Visible = value
+
+        end
+    )
+end
+
+--==============================================================
+-- FPS TAB
+--==============================================================
+
+local function ShowFPS()
+
+    ClearContent()
+
+    local MegaButton
+
+    MegaButton = Button(
+        "🚀 MEGA BOOST   [ "
+        ..(Config.MegaBoost and "ON" or "OFF")
+        .." ]",
+
+        function()
+
+            Config.MegaBoost =
+                not Config.MegaBoost
+
+            if Config.MegaBoost then
+
+                MegaBoost()
+
+            else
+
+                RestoreGraphics()
+
+            end
+
+            ShowFPS()
+
+        end
+    )
+
+    MegaButton.TextColor3 =
+        Config.MegaBoost
+        and Color3.fromRGB(255,75,75)
+        or Color3.fromRGB(235,235,240)
+
+    Button(
+        "🔄 RESTAURAR GRÁFICOS",
+        function()
+
+            Config.MegaBoost = false
+
+            RestoreGraphics()
+
+            ShowFPS()
+
+        end
+    )
+
+    Button(
+        "ℹ️ MEGA BOOST",
+        function()
+            print(
+                "Mega Boost: texturas, partículas, luzes, sombras, fog, efeitos, água e materiais."
+            )
+        end
+    )
+end
+
+--==============================================================
+-- MOVEMENT TAB
+--==============================================================
+
+local function ShowMovement()
+
+    ClearContent()
+
+    Toggle(
+        "🏃 WalkSpeed",
+        Config.WalkSpeed,
+        function(value)
+            Config.WalkSpeed = value
+        end
+    )
+
+    Button(
+        "🏃 Speed  •  "..Config.Speed,
+        function()
+
+            Config.Speed += 10
+
+            if Config.Speed > 100 then
+                Config.Speed = 16
+            end
+
+            ShowMovement()
+
+        end
+    )
+
+    Toggle(
+        "🦘 JumpPower",
+        Config.JumpPower,
+        function(value)
+            Config.JumpPower = value
+        end
+    )
+
+    Button(
+        "🦘 Jump  •  "..Config.Jump,
+        function()
+
+            Config.Jump += 25
+
+            if Config.Jump > 150 then
+                Config.Jump = 25
+            end
+
+            ShowMovement()
+
+        end
+    )
+end
+
+--==============================================================
+-- TABS
+--==============================================================
+
+local function CreateTab(text, callback)
+
+    local B = Instance.new("TextButton")
+
+    B.BackgroundColor3 =
+        Color3.fromRGB(27,27,33)
+
+    B.BorderSizePixel = 0
+
+    B.Text = text
+    B.TextColor3 =
+        Color3.fromRGB(220,220,225)
+
+    B.TextSize = 11
+    B.Font = Enum.Font.GothamBold
+
+    B.AutoButtonColor = false
+    B.Parent = TabBar
+
+    local Corner = Instance.new("UICorner")
+    Corner.CornerRadius = UDim.new(0,8)
+    Corner.Parent = B
+
+    B.MouseButton1Click:Connect(function()
+
+        for _, tab in ipairs(TabBar:GetChildren()) do
+
+            if tab:IsA("TextButton") then
+                tab.BackgroundColor3 =
+                    Color3.fromRGB(27,27,33)
+            end
+
+        end
+
+        B.BackgroundColor3 =
+            Color3.fromRGB(65,35,38)
+
+        callback()
+
+    end)
+
+    return B
+end
+
+local AimTab =
+    CreateTab("🎯 AIM",ShowAim)
+
+local VisualTab =
+    CreateTab("👁 VISUAL",ShowVisual)
+
+local FPSTab =
+    CreateTab("⚡ FPS",ShowFPS)
+
+local MovementTab =
+    CreateTab("🏃 MOVE",ShowMovement)
+
+--==============================================================
+-- DEFAULT TAB
+--==============================================================
+
+AimTab.BackgroundColor3 =
+    Color3.fromRGB(65,35,38)
+
+ShowAim()
+
+--==============================================================
+-- AIM SYSTEM
+--==============================================================
+
+local LockedTarget = nil
+
+local function IsAlive(character)
+
+    if not character then
+        return false
+    end
+
+    local Humanoid =
+        character:FindFirstChildOfClass("Humanoid")
+
+    return Humanoid
+        and Humanoid.Health > 0
+end
+
+local function CanSee(part)
+
+    if not Config.WallCheck then
+        return true
+    end
+
+    local Camera =
+        workspace.CurrentCamera
+
+    if not Camera or not part then
+        return false
+    end
+
+    local Origin =
+        Camera.CFrame.Position
+
+    local Direction =
+        part.Position-Origin
+
+    local Params =
+        RaycastParams.new()
+
+    Params.FilterType =
+        Enum.RaycastFilterType.Exclude
+
+    Params.FilterDescendantsInstances = {
+        LocalPlayer.Character
+    }
+
+    local Result =
+        workspace:Raycast(
+            Origin,
+            Direction,
+            Params
+        )
+
+    if not Result then
+        return true
+    end
+
+    return Result.Instance:IsDescendantOf(
+        part.Parent
+    )
+end
+
+local function ValidTarget(part)
+
+    if not part or not part.Parent then
+        return false
+    end
+
+    local Character =
+        part.Parent
+
+    if Config.AliveCheck
+        and not IsAlive(Character) then
+        return false
+    end
+
+    local Camera =
+        workspace.CurrentCamera
+
+    if not Camera then
+        return false
+    end
+
+    local Position, Visible =
+        Camera:WorldToViewportPoint(
+            part.Position
+        )
+
+    if not Visible or Position.Z <= 0 then
+        return false
+    end
+
+    local Center =
+        Vector2.new(
+            Camera.ViewportSize.X/2,
+            Camera.ViewportSize.Y/2
+        )
+
+    local Distance =
+        (
+            Vector2.new(
+                Position.X,
+                Position.Y
+            )-Center
+        ).Magnitude
+
+    if Distance > Config.FOV then
+        return false
+    end
+
+    return CanSee(part)
+end
+
+local function GetTarget()
+
+    local Camera =
+        workspace.CurrentCamera
+
+    if not Camera then
+        return nil
+    end
+
+    local Center =
+        Vector2.new(
+            Camera.ViewportSize.X/2,
+            Camera.ViewportSize.Y/2
+        )
+
+    local Closest
+    local ClosestDistance =
+        Config.FOV
+
+    for _, p in ipairs(Players:GetPlayers()) do
+
+        if p ~= LocalPlayer then
+
+            local Character =
+                p.Character
+
+            if IsAlive(Character) then
+
+                local Head =
+                    Character:FindFirstChild("Head")
+
+                if Head then
+
+                    local Position, Visible =
+                        Camera:WorldToViewportPoint(
+                            Head.Position
+                        )
+
+                    if Visible and Position.Z > 0 then
+
+                        local Distance =
+                            (
+                                Vector2.new(
+                                    Position.X,
+                                    Position.Y
+                                )-Center
+                            ).Magnitude
+
+                        if Distance <
+                            ClosestDistance
+                            and CanSee(Head) then
+
+                            Closest = Head
+                            ClosestDistance =
+                                Distance
+
+                        end
+                    end
+                end
+            end
+        end
+    end
+
+    return Closest
+end
+
+local function AimAt(Target)
+
+    if not ValidTarget(Target) then
+        return
+    end
+
+    local Camera =
+        workspace.CurrentCamera
+
+    local Desired =
+        CFrame.lookAt(
+            Camera.CFrame.Position,
+            Target.Position
+        )
+
+    Camera.CFrame =
+        Camera.CFrame:Lerp(
+            Desired,
+            math.clamp(
+                Config.AimStrength,
+                0.05,
+                1
+            )
+        )
+end
+
+--==============================================================
+-- SIMPLE VISUAL SYSTEM
+--==============================================================
+
+local ESPObjects = {}
+
+local function RemoveESP(player)
+
+    local Data =
+        ESPObjects[player]
+
+    if not Data then
+        return
+    end
+
+    if Data.Highlight then
+        Data.Highlight:Destroy()
+    end
+
+    if Data.Billboard then
+        Data.Billboard:Destroy()
+    end
+
+    if Data.Tracer then
+        Data.Tracer:Destroy()
+    end
+
+    ESPObjects[player] = nil
+end
+
+local function CreateESP(player)
+
+    if player == LocalPlayer then
+        return
+    end
+
+    RemoveESP(player)
+
+    local Character =
+        player.Character
+
+    if not Character then
+        return
+    end
+
+    local Root =
+        Character:FindFirstChild(
+            "HumanoidRootPart"
+        )
+
+    if not Root then
+        return
+    end
+
+    local Data = {}
+    ESPObjects[player] = Data
+
+    local Highlight =
+        Instance.new("Highlight")
+
+    Highlight.Adornee = Character
+    Highlight.FillColor =
+        Color3.fromRGB(255,45,45)
+
+    Highlight.OutlineColor =
+        Color3.fromRGB(255,255,255)
+
+    Highlight.FillTransparency = 0.75
+    Highlight.DepthMode =
+        Enum.HighlightDepthMode.AlwaysOnTop
+
+    Highlight.Enabled =
+        Config.WallHighlight
+
+    Highlight.Parent = Character
+
+    Data.Highlight = Highlight
+
+    local Billboard =
+        Instance.new("BillboardGui")
+
+    Billboard.Adornee = Root
+    Billboard.Size =
+        UDim2.fromOffset(180,30)
+
+    Billboard.StudsOffset =
+        Vector3.new(0,3,0)
+
+    Billboard.AlwaysOnTop = true
+    Billboard.Enabled = Config.ESP
+
+    Billboard.Parent = Root
+
+    local Label =
+        Instance.new("TextLabel")
+
+    Label.Size =
+        UDim2.fromScale(1,1)
+
+    Label.BackgroundTransparency = 1
+    Label.TextColor3 =
+        Color3.fromRGB(255,70,70)
+
+    Label.TextStrokeTransparency = 0
+    Label.TextSize = 13
+    Label.Font = Enum.Font.GothamBold
+
+    Label.Parent = Billboard
+
+    Data.Billboard = Billboard
+    Data.Label = Label
+
+    local Tracer =
+        Instance.new("Frame")
+
+    Tracer.BackgroundColor3 =
+        Color3.fromRGB(255,45,45)
+
+    Tracer.BorderSizePixel = 0
+    Tracer.AnchorPoint =
+        Vector2.new(0.5,0.5)
+
+    Tracer.Size =
+        UDim2.fromOffset(0,2)
+
+    Tracer.Visible = false
+    Tracer.Parent = Gui
+
+    Data.Tracer = Tracer
+end
+
+for _, p in ipairs(Players:GetPlayers()) do
+
+    if p ~= LocalPlayer then
+
+        if p.Character then
+            task.defer(CreateESP,p)
+        end
+
+        p.CharacterAdded:Connect(function()
+            task.wait(0.2)
+            CreateESP(p)
+        end)
+
+    end
+end
+
+Players.PlayerAdded:Connect(function(p)
+
+    p.CharacterAdded:Connect(function()
+        task.wait(0.2)
+        CreateESP(p)
+    end)
+
+end)
+
+Players.PlayerRemoving:Connect(RemoveESP)
+
+--==============================================================
+-- MAIN LOOP
+--==============================================================
+
+local Frames = 0
+local LastFPS = os.clock()
+
+RunService.RenderStepped:Connect(function()
+
+    -- FPS
+    Frames += 1
+
+    local Now = os.clock()
+
+    if Now-LastFPS >= 1 then
+
+        FPS.Text =
+            "FPS: "..Frames
+
+        Frames = 0
+        LastFPS = Now
+
+    end
+
+    -- MOVEMENT
+    local Character =
+        LocalPlayer.Character
+
+    local Humanoid =
+        Character and
+        Character:FindFirstChildOfClass(
+            "Humanoid"
+        )
+
+    if Humanoid then
+
+        if Config.WalkSpeed then
+            Humanoid.WalkSpeed =
+                Config.Speed
+        end
+
+        if Config.JumpPower then
+            Humanoid.JumpPower =
+                Config.Jump
+        end
+
+    end
+
+    -- VISUAL
+    local Camera =
+        workspace.CurrentCamera
+
+    for player,data in pairs(ESPObjects) do
+
+        local Character =
+            player.Character
+
+        local Humanoid =
+            Character and
+            Character:FindFirstChildOfClass(
+                "Humanoid"
+            )
+
+        local Root =
+            Character and
+            Character:FindFirstChild(
+                "HumanoidRootPart"
+            )
+
+        if Humanoid
+            and Root
+            and Humanoid.Health > 0 then
+
+            data.Highlight.Enabled =
+                Config.WallHighlight
+
+            data.Billboard.Enabled =
+                Config.ESP
+
+            local Distance =
+                (
+                    Camera.CFrame.Position
+                    -Root.Position
+                ).Magnitude
+
+            data.Label.Text =
+                player.Name ..
+                " • " ..
+                math.floor(Distance)
+
+            if Config.Tracers then
+
+                local Position, Visible =
+                    Camera:WorldToViewportPoint(
+                        Root.Position
+                    )
+
+                if Visible and Position.Z > 0 then
+
+                    local Viewport =
+                        Camera.ViewportSize
+
+                    local Start =
+                        Vector2.new(
+                            Viewport.X/2,
+                            Viewport.Y
+                        )
+
+                    local Finish =
+                        Vector2.new(
+                            Position.X,
+                            Position.Y
+                        )
+
+                    local Difference =
+                        Finish-Start
+
+                    local Length =
+                        Difference.Magnitude
+
+                    if Length > 1 then
+
+                        local Middle =
+                            (Start+Finish)/2
+
+                        data.Tracer.Position =
+                            UDim2.fromOffset(
+                                Middle.X,
+                                Middle.Y
+                            )
+
+                        data.Tracer.Size =
+                            UDim2.fromOffset(
+                                Length,
+                                2
+                            )
+
+                        data.Tracer.Rotation =
+                            math.deg(
+                                math.atan2(
+                                    Difference.Y,
+                                    Difference.X
+                                )
+                            )
+
+                        data.Tracer.Visible = true
+
+                    end
+
+                else
+                    data.Tracer.Visible = false
+                end
+
+            else
+                data.Tracer.Visible = false
+            end
+
+        else
+
+            data.Highlight.Enabled = false
+            data.Billboard.Enabled = false
+            data.Tracer.Visible = false
+
+        end
+    end
+
+    -- AIM
+    if Config.AimAssist then
+
+        FOVCircle.Visible =
+            Config.FOVEnabled
+
+        if LockedTarget
+            and not ValidTarget(
+                LockedTarget
+            ) then
+
+            LockedTarget = nil
+        end
+
+        if not LockedTarget then
+            LockedTarget = GetTarget()
+        end
+
+        if LockedTarget then
+            AimAt(LockedTarget)
+        end
+
+    else
+
+        LockedTarget = nil
+        FOVCircle.Visible = false
+
+    end
+
+end)
+
+--==============================================================
+-- OPEN / CLOSE
+--==============================================================
+
+Floating.MouseButton1Click:Connect(function()
+    Main.Visible = not Main.Visible
+end)
+
+Close.MouseButton1Click:Connect(function()
+    Main.Visible = false
+end)
+
+--==============================================================
+-- DRAG
+--==============================================================
+
+local Dragging = false
+local DragStart
+local StartPosition
+
+Header.InputBegan:Connect(function(input)
+
+    if input.UserInputType ==
+        Enum.UserInputType.MouseButton1
+        or input.UserInputType ==
+        Enum.UserInputType.Touch then
+
+        Dragging = true
+        DragStart = input.Position
+        StartPosition = Main.Position
+
+    end
+
+end)
+
+UserInputService.InputChanged:Connect(function(input)
+
+    if not Dragging then
+        return
+    end
+
+    if input.UserInputType ==
+        Enum.UserInputType.MouseMovement
+        or input.UserInputType ==
+        Enum.UserInputType.Touch then
+
+        local Delta =
+            input.Position-DragStart
+
+        Main.Position = UDim2.new(
+            StartPosition.X.Scale,
+            StartPosition.X.Offset+Delta.X,
+            StartPosition.Y.Scale,
+            StartPosition.Y.Offset+Delta.Y
+        )
+
+    end
+
+end)
+
+UserInputService.InputEnded:Connect(function(input)
+
+    if input.UserInputType ==
+        Enum.UserInputType.MouseButton1
+        or input.UserInputType ==
+        Enum.UserInputType.Touch then
+
+        Dragging = false
+
+    end
+
+end)
+
+--==============================================================
+-- RESPAWN
+--==============================================================
+
+LocalPlayer.CharacterAdded:Connect(function()
+    LockedTarget = nil
+end)
+
+--==============================================================
+-- FINAL
+--==============================================================
+
+print("==========================================")
+print("          VENTIS HUB V11")
+print("       AIM • VISUAL • FPS • MOVE")
+print("             MEGA BOOST")
+print("          by ventis321")
+print("==========================================")
