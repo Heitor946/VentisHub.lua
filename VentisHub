@@ -1,966 +1,579 @@
 --[[
-==============================================================
-                     VENTIS HUB V10
-                  ROBLOX STUDIO / LOCAL
-                    by ventis321
-==============================================================
-LocalScript:
-StarterPlayer > StarterPlayerScripts
-
-• Loading screen
-• Compact mobile UI
-• Floating V button
-• Aim Assist / FOV / Wall Check / Alive Check
-• ESP / Highlight / Tracers
-• Fly + Fly Speed
-• FPS Counter
-• WalkSpeed / JumpPower
-• Local visual Anti-Lag
-==============================================================
+========================================================
+        VENTIS HUB — PREMIUM LOADER V2.3
+              PAID-ONLY EDITION (GREEN)
+========================================================
+  Fluxo: Loading → Key → Executa o Antilag do GitHub
+========================================================
 ]]
 
-local Players = game:GetService("Players")
-local RunService = game:GetService("RunService")
-local UserInputService = game:GetService("UserInputService")
-local TweenService = game:GetService("TweenService")
+-- ============================================================
+-- ▓▓▓  CONFIGURAÇÃO  ▓▓▓
+-- ============================================================
 
-local LocalPlayer = Players.LocalPlayer
-local PlayerGui = LocalPlayer:WaitForChild("PlayerGui")
+local CONFIG = {
 
---==============================================================
--- CONFIG
---==============================================================
+    PAID_SCRIPT_URL = "https://raw.githubusercontent.com/Heitor946/Antilag-VentisHub/main/Antilag",
+    PAID_SCRIPT_CODE = "",
 
-local Config = {
-    AimAssist = false,
-    AimStrength = 1,
-    FOVEnabled = true,
-    FOV = 80,
-    WallCheck = true,
-    AliveCheck = true,
+    VALID_KEYS = {
+        ["VENTIS-9K2M-XP7Q-A4DN"] = true,
+        ["VENTIS-T5RH-8ZBF-3CWL"] = true,
+        ["VENTIS-6NJP-QW2K-9VXH"] = true,
+        ["VENTIS-YB3R-7LDM-KF5T"] = true,
+        ["VENTIS-4XC8-HRPT-2ZQN"] = true,
+        ["VENTIS-WM9V-K5BF-8JDR"] = true,
+        ["VENTIS-3LQN-XT7H-6CPM"] = true,
+        ["VENTIS-F8DK-2VRW-Q5ZB"] = true,
+        ["VENTIS-PH4M-N9XK-7TCD"] = true,
+        ["VENTIS-7JBN-K2QT-VR6F"] = true,
+        ["VENTIS-D5XW-8LPH-M3KY"] = true,
+        ["VENTIS-QZ6R-T4VN-9BJF"] = true,
+        ["VENTIS-2MYK-H7CF-PX8L"] = true,
+        ["VENTIS-NW9T-B5JR-K4QM"] = true,
+        ["VENTIS-C3VF-6XDP-8LZR"] = true,
+        ["VENTIS-HT7K-M2BN-QW9C"] = true,
+        ["VENTIS-8XQJ-R6VF-3LDT"] = true,
+        ["VENTIS-B4PM-K9CH-N5TX"] = true,
+        ["VENTIS-VR2N-W7QX-6FJD"] = true,
+        ["VENTIS-L8CZ-T3MK-P9BH"] = true,
+        ["VENTIS-X5KT-QJ6R-D2VN"] = true,
+        ["VENTIS-9WHM-B4FX-7CQN"] = true,
+        ["VENTIS-R6PN-V3JK-T8LD"] = true,
+        ["VENTIS-K2QX-8MCT-W5BF"] = true,
+        ["VENTIS-Z7DH-N4VR-9PJM"] = true,
+        ["VENTIS-M5BF-X8QK-C3TN"] = true,
+        ["VENTIS-T3LJ-P6WM-R9VX"] = true,
+        ["VENTIS-Q9VN-H2DK-4BFP"] = true,
+        ["VENTIS-F6RX-K5TJ-W8CM"] = true,
+        ["VENTIS-C4WP-M9QN-7VKH"] = true,
+    },
 
-    ESP = false,
-    Wallhack = false,
-    Tracers = false,
-
-    FPSCounter = false,
-
-    AntiLag = false,
-
-    WalkSpeedEnabled = false,
-    WalkSpeed = 16,
-
-    JumpEnabled = false,
-    JumpPower = 50
+    VALIDATE_URL = "",
+    KEY_FILE = "ventis_premium_key.txt",
+    LOADING_TIME = 3.5,
 }
 
---==============================================================
--- CLEAN
---==============================================================
+-- ============================================================
+-- ▓▓▓  SERVIÇOS  ▓▓▓
+-- ============================================================
 
-for _, name in ipairs({"VentisHubV10", "VentisLoading"}) do
-    local old = PlayerGui:FindFirstChild(name)
-    if old then old:Destroy() end
-end
+local Players      = game:GetService("Players")
+local TweenService = game:GetService("TweenService")
 
---==============================================================
--- LOADING
---==============================================================
+local player    = Players.LocalPlayer
+local playerGui = player:WaitForChild("PlayerGui")
 
-local LoadingGui = Instance.new("ScreenGui")
-LoadingGui.Name = "VentisLoading"
-LoadingGui.IgnoreGuiInset = true
-LoadingGui.ResetOnSpawn = false
-LoadingGui.DisplayOrder = 999
-LoadingGui.Parent = PlayerGui
+-- ============================================================
+-- ▓▓▓  TEMA (VERDE)  ▓▓▓
+-- ============================================================
 
-local LoadingBG = Instance.new("Frame")
-LoadingBG.Size = UDim2.fromScale(1,1)
-LoadingBG.BackgroundColor3 = Color3.fromRGB(5,5,7)
-LoadingBG.BorderSizePixel = 0
-LoadingBG.Parent = LoadingGui
+local THEME = {
+    bg          = Color3.fromRGB(10, 10, 16),
+    bgCard      = Color3.fromRGB(20, 20, 30),
+    border      = Color3.fromRGB(42, 42, 60),
+    text        = Color3.fromRGB(240, 240, 255),
+    textDim     = Color3.fromRGB(140, 140, 175),
+    gold        = Color3.fromRGB(0, 220, 130),     -- verde principal
+    gold2       = Color3.fromRGB(0, 160, 90),      -- verde escuro (gradiente)
+    goldLight   = Color3.fromRGB(0, 255, 160),     -- verde claro (hover)
+    danger      = Color3.fromRGB(240, 70, 90),
+    success     = Color3.fromRGB(0, 220, 130),
+}
 
-local LoadingTitle = Instance.new("TextLabel")
-LoadingTitle.Size = UDim2.new(1,0,0,50)
-LoadingTitle.Position = UDim2.new(0,0,0.38,0)
-LoadingTitle.BackgroundTransparency = 1
-LoadingTitle.Text = "VENTIS HUB"
-LoadingTitle.TextColor3 = Color3.fromRGB(255,255,255)
-LoadingTitle.TextSize = 30
-LoadingTitle.Font = Enum.Font.GothamBold
-LoadingTitle.Parent = LoadingBG
+local TWEEN_FAST = TweenInfo.new(0.15, Enum.EasingStyle.Quad,  Enum.EasingDirection.Out)
+local TWEEN_MED  = TweenInfo.new(0.30, Enum.EasingStyle.Quart, Enum.EasingDirection.Out)
+local TWEEN_SOFT = TweenInfo.new(0.55, Enum.EasingStyle.Quart, Enum.EasingDirection.Out)
 
-local ByVentis = Instance.new("TextLabel")
-ByVentis.Size = UDim2.new(1,0,0,22)
-ByVentis.Position = UDim2.new(0,0,0.455,0)
-ByVentis.BackgroundTransparency = 1
-ByVentis.Text = "by ventis321"
-ByVentis.TextColor3 = Color3.fromRGB(150,150,150)
-ByVentis.TextSize = 12
-ByVentis.Font = Enum.Font.GothamMedium
-ByVentis.Parent = LoadingBG
+-- ============================================================
+-- ▓▓▓  HELPERS  ▓▓▓
+-- ============================================================
 
-local LoadingText = Instance.new("TextLabel")
-LoadingText.Size = UDim2.new(1,0,0,25)
-LoadingText.Position = UDim2.new(0,0,0.50,0)
-LoadingText.BackgroundTransparency = 1
-LoadingText.Text = "Carregando..."
-LoadingText.TextColor3 = Color3.fromRGB(180,180,180)
-LoadingText.TextSize = 13
-LoadingText.Font = Enum.Font.Gotham
-LoadingText.Parent = LoadingBG
-
-local LoadingBack = Instance.new("Frame")
-LoadingBack.Size = UDim2.fromOffset(240,6)
-LoadingBack.Position = UDim2.new(0.5,-120,0.55,0)
-LoadingBack.BackgroundColor3 = Color3.fromRGB(45,45,45)
-LoadingBack.BorderSizePixel = 0
-LoadingBack.Parent = LoadingBG
-
-local BackCorner = Instance.new("UICorner")
-BackCorner.CornerRadius = UDim.new(1,0)
-BackCorner.Parent = LoadingBack
-
-local LoadingBar = Instance.new("Frame")
-LoadingBar.Size = UDim2.new(0,0,1,0)
-LoadingBar.BackgroundColor3 = Color3.fromRGB(255,55,55)
-LoadingBar.BorderSizePixel = 0
-LoadingBar.Parent = LoadingBack
-
-local BarCorner = Instance.new("UICorner")
-BarCorner.CornerRadius = UDim.new(1,0)
-BarCorner.Parent = LoadingBar
-
-local function LoadStep(text, percent)
-    LoadingText.Text = text
-    TweenService:Create(
-        LoadingBar,
-        TweenInfo.new(0.25),
-        {Size = UDim2.new(percent,0,1,0)}
-    ):Play()
-    task.wait(0.28)
-end
-
-LoadStep("Inicializando...",0.2)
-LoadStep("Carregando interface...",0.4)
-LoadStep("Carregando visual...",0.6)
-LoadStep("Carregando sistemas...",0.8)
-LoadStep("Ventis Hub pronto!",1)
-task.wait(0.35)
-LoadingGui:Destroy()
-
---==============================================================
--- GUI
---==============================================================
-
-local Gui = Instance.new("ScreenGui")
-Gui.Name = "VentisHubV10"
-Gui.ResetOnSpawn = false
-Gui.IgnoreGuiInset = true
-Gui.DisplayOrder = 10
-Gui.Parent = PlayerGui
-
-local OpenButton = Instance.new("TextButton")
-OpenButton.Name = "VentisButton"
-OpenButton.Size = UDim2.fromOffset(46,46)
-OpenButton.Position = UDim2.new(0,12,0.5,-23)
-OpenButton.BackgroundColor3 = Color3.fromRGB(10,10,12)
-OpenButton.BorderSizePixel = 0
-OpenButton.Text = "V"
-OpenButton.TextColor3 = Color3.fromRGB(255,255,255)
-OpenButton.TextSize = 22
-OpenButton.Font = Enum.Font.GothamBold
-OpenButton.Parent = Gui
-
-local OpenCorner = Instance.new("UICorner")
-OpenCorner.CornerRadius = UDim.new(1,0)
-OpenCorner.Parent = OpenButton
-
-local OpenStroke = Instance.new("UIStroke")
-OpenStroke.Color = Color3.fromRGB(255,45,45)
-OpenStroke.Thickness = 2
-OpenStroke.Parent = OpenButton
-
-local Main = Instance.new("Frame")
-Main.Name = "Main"
-Main.Size = UDim2.fromOffset(285,390)
-Main.Position = UDim2.new(0.5,-142,0.5,-195)
-Main.BackgroundColor3 = Color3.fromRGB(8,8,10)
-Main.BorderSizePixel = 0
-Main.Parent = Gui
-
-local MainCorner = Instance.new("UICorner")
-MainCorner.CornerRadius = UDim.new(0,15)
-MainCorner.Parent = Main
-
-local MainStroke = Instance.new("UIStroke")
-MainStroke.Color = Color3.fromRGB(45,45,50)
-MainStroke.Parent = Main
-
-local Title = Instance.new("TextLabel")
-Title.Size = UDim2.new(1,-20,0,38)
-Title.Position = UDim2.fromOffset(10,4)
-Title.BackgroundTransparency = 1
-Title.Text = "Ventis Hub"
-Title.TextColor3 = Color3.fromRGB(255,255,255)
-Title.TextSize = 22
-Title.Font = Enum.Font.GothamBold
-Title.TextXAlignment = Enum.TextXAlignment.Left
-Title.Parent = Main
-
-local Version = Instance.new("TextLabel")
-Version.Size = UDim2.new(1,-20,0,16)
-Version.Position = UDim2.fromOffset(10,36)
-Version.BackgroundTransparency = 1
-Version.Text = "V10 • by ventis321"
-Version.TextColor3 = Color3.fromRGB(120,120,125)
-Version.TextSize = 9
-Version.Font = Enum.Font.Gotham
-Version.TextXAlignment = Enum.TextXAlignment.Left
-Version.Parent = Main
-
-local Scroll = Instance.new("ScrollingFrame")
-Scroll.Size = UDim2.new(1,-20,1,-62)
-Scroll.Position = UDim2.fromOffset(10,58)
-Scroll.BackgroundTransparency = 1
-Scroll.BorderSizePixel = 0
-Scroll.ScrollBarThickness = 3
-Scroll.AutomaticCanvasSize = Enum.AutomaticSize.Y
-Scroll.CanvasSize = UDim2.new()
-Scroll.Parent = Main
-
-local Layout = Instance.new("UIListLayout")
-Layout.Padding = UDim.new(0,7)
-Layout.SortOrder = Enum.SortOrder.LayoutOrder
-Layout.Parent = Scroll
-
-local function CreateButton(text, callback)
-    local b = Instance.new("TextButton")
-    b.Size = UDim2.new(1,-3,0,38)
-    b.BackgroundColor3 = Color3.fromRGB(32,32,36)
-    b.BorderSizePixel = 0
-    b.Text = text
-    b.TextColor3 = Color3.fromRGB(235,235,235)
-    b.TextSize = 14
-    b.Font = Enum.Font.GothamMedium
-    b.AutoButtonColor = false
-    b.Parent = Scroll
-
+local function corner(p, r)
     local c = Instance.new("UICorner")
-    c.CornerRadius = UDim.new(0,9)
-    c.Parent = b
-
-    b.MouseEnter:Connect(function()
-        b.BackgroundColor3 = Color3.fromRGB(45,45,50)
-    end)
-    b.MouseLeave:Connect(function()
-        b.BackgroundColor3 = Color3.fromRGB(32,32,36)
-    end)
-    b.MouseButton1Click:Connect(callback)
-    return b
+    c.CornerRadius = UDim.new(0, r or 8); c.Parent = p; return c
 end
 
-local function CreateToggle(text, default, callback)
-    local state = default
-    local button
+local function stroke(p, color, thick, transp)
+    local s = Instance.new("UIStroke")
+    s.Color = color or THEME.border
+    s.Thickness = thick or 1
+    s.Transparency = transp or 0
+    s.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
+    s.Parent = p; return s
+end
 
-    local function update()
-        button.Text = text .. "  [" .. (state and "ON" or "OFF") .. "]"
-        button.TextColor3 = state
-            and Color3.fromRGB(255,75,75)
-            or Color3.fromRGB(235,235,235)
+local function gradient(p, c1, c2, rot)
+    local g = Instance.new("UIGradient")
+    g.Color = ColorSequence.new(c1, c2)
+    g.Rotation = rot or 0
+    g.Parent = p; return g
+end
+
+local function safeWrite(name, data)
+    pcall(function() writefile(name, data) end)
+end
+local function safeRead(name)
+    local ok, data = pcall(function() return readfile(name) end)
+    return ok and data or nil
+end
+
+-- ============================================================
+-- ▓▓▓  VALIDAÇÃO  ▓▓▓
+-- ============================================================
+
+local function validateKeyHTTP(key)
+    if CONFIG.VALIDATE_URL == "" then return nil end
+    local url = CONFIG.VALIDATE_URL .. "?key=" .. key
+    local ok, res = pcall(function() return game:HttpGet(url) end)
+    if not ok or not res then return false end
+    return tostring(res):lower():find("valid") ~= nil
+end
+
+local function validateKeyLocal(key)
+    return CONFIG.VALID_KEYS[key] == true
+end
+
+local function validateKey(key)
+    if type(key) ~= "string" or #key < 4 then return false end
+    local httpResult = validateKeyHTTP(key)
+    if httpResult ~= nil then return httpResult end
+    return validateKeyLocal(key)
+end
+
+-- ============================================================
+-- ▓▓▓  EXECUÇÃO  ▓▓▓
+-- ============================================================
+
+local function fetchRemote(url)
+    if not url or url == "" then return nil end
+    local ok, res = pcall(function() return game:HttpGet(url) end)
+    if ok and res and #res > 0 then return res end
+    return nil
+end
+
+local function runScript(code, label)
+    if not code or #code < 4 then
+        warn("⚡ VENTIS: script vazio — " .. label); return false
     end
-
-    button = CreateButton("", function()
-        state = not state
-        callback(state)
-        update()
-    end)
-
-    update()
-    return button
-end
-
-local function CreateSlider(text, minimum, maximum, default, callback)
-    local holder = Instance.new("Frame")
-    holder.Size = UDim2.new(1,-3,0,57)
-    holder.BackgroundColor3 = Color3.fromRGB(28,28,32)
-    holder.BorderSizePixel = 0
-    holder.Parent = Scroll
-
-    local c = Instance.new("UICorner")
-    c.CornerRadius = UDim.new(0,9)
-    c.Parent = holder
-
-    local label = Instance.new("TextLabel")
-    label.Size = UDim2.new(1,-16,0,22)
-    label.Position = UDim2.fromOffset(8,3)
-    label.BackgroundTransparency = 1
-    label.TextColor3 = Color3.fromRGB(235,235,235)
-    label.TextSize = 12
-    label.Font = Enum.Font.GothamMedium
-    label.TextXAlignment = Enum.TextXAlignment.Left
-    label.Parent = holder
-
-    local bar = Instance.new("Frame")
-    bar.Size = UDim2.new(1,-16,0,6)
-    bar.Position = UDim2.fromOffset(8,38)
-    bar.BackgroundColor3 = Color3.fromRGB(60,60,65)
-    bar.BorderSizePixel = 0
-    bar.Parent = holder
-
-    local bc = Instance.new("UICorner")
-    bc.CornerRadius = UDim.new(1,0)
-    bc.Parent = bar
-
-    local fill = Instance.new("Frame")
-    fill.BackgroundColor3 = Color3.fromRGB(255,55,55)
-    fill.BorderSizePixel = 0
-    fill.Parent = bar
-
-    local fc = Instance.new("UICorner")
-    fc.CornerRadius = UDim.new(1,0)
-    fc.Parent = fill
-
-    local knob = Instance.new("Frame")
-    knob.Size = UDim2.fromOffset(16,16)
-    knob.AnchorPoint = Vector2.new(0.5,0.5)
-    knob.BackgroundColor3 = Color3.fromRGB(255,255,255)
-    knob.BorderSizePixel = 0
-    knob.Parent = bar
-
-    local kc = Instance.new("UICorner")
-    kc.CornerRadius = UDim.new(1,0)
-    kc.Parent = knob
-
-    local dragging = false
-
-    local function setValue(value)
-        value = math.clamp(value,minimum,maximum)
-        local percent = (value-minimum)/(maximum-minimum)
-        fill.Size = UDim2.new(percent,0,1,0)
-        knob.Position = UDim2.new(percent,0,0.5,0)
-        label.Text = text .. ": " .. math.floor(value)
-        callback(value)
-    end
-
-    local function fromInput(input)
-        local percent =
-            (input.Position.X-bar.AbsolutePosition.X) /
-            bar.AbsoluteSize.X
-        setValue(
-            minimum+(maximum-minimum)*
-            math.clamp(percent,0,1)
-        )
-    end
-
-    bar.InputBegan:Connect(function(input)
-        if input.UserInputType == Enum.UserInputType.MouseButton1
-        or input.UserInputType == Enum.UserInputType.Touch then
-            dragging = true
-            fromInput(input)
-        end
-    end)
-
-    UserInputService.InputChanged:Connect(function(input)
-        if dragging and
-        (input.UserInputType == Enum.UserInputType.MouseMovement
-        or input.UserInputType == Enum.UserInputType.Touch) then
-            fromInput(input)
-        end
-    end)
-
-    UserInputService.InputEnded:Connect(function(input)
-        if input.UserInputType == Enum.UserInputType.MouseButton1
-        or input.UserInputType == Enum.UserInputType.Touch then
-            dragging = false
-        end
-    end)
-
-    setValue(default)
-    return holder
-end
-
---==============================================================
--- FOV
---==============================================================
-
-local FOVCircle = Instance.new("Frame")
-FOVCircle.Name = "FOVCircle"
-FOVCircle.AnchorPoint = Vector2.new(0.5,0.5)
-FOVCircle.Position = UDim2.fromScale(0.5,0.5)
-FOVCircle.Size = UDim2.fromOffset(Config.FOV*2,Config.FOV*2)
-FOVCircle.BackgroundTransparency = 1
-FOVCircle.Visible = false
-FOVCircle.Parent = Gui
-
-local FOVCorner = Instance.new("UICorner")
-FOVCorner.CornerRadius = UDim.new(1,0)
-FOVCorner.Parent = FOVCircle
-
-local FOVStroke = Instance.new("UIStroke")
-FOVStroke.Color = Color3.fromRGB(255,40,40)
-FOVStroke.Thickness = 2
-FOVStroke.Parent = FOVCircle
-
---==============================================================
--- FPS
---==============================================================
-
-local FPSLabel = Instance.new("TextLabel")
-FPSLabel.Size = UDim2.fromOffset(90,28)
-FPSLabel.Position = UDim2.new(0,10,1,-45)
-FPSLabel.BackgroundColor3 = Color3.fromRGB(20,20,25)
-FPSLabel.BackgroundTransparency = 0.15
-FPSLabel.BorderSizePixel = 0
-FPSLabel.Text = "FPS: --"
-FPSLabel.TextColor3 = Color3.fromRGB(255,255,255)
-FPSLabel.TextSize = 14
-FPSLabel.Font = Enum.Font.GothamBold
-FPSLabel.Visible = false
-FPSLabel.Parent = Gui
-
-local FPSCorner = Instance.new("UICorner")
-FPSCorner.CornerRadius = UDim.new(0,8)
-FPSCorner.Parent = FPSLabel
-
-CreateToggle("Mostrar FPS",false,function(value)
-    Config.FPSCounter = value
-    FPSLabel.Visible = value
-end)
-
---==============================================================
--- AIM OPTIONS
---==============================================================
-
-CreateToggle("Aim Assist",false,function(value)
-    Config.AimAssist = value
-    FOVCircle.Visible = value and Config.FOVEnabled
-end)
-
-CreateSlider("FOV",30,200,Config.FOV,function(value)
-    Config.FOV = value
-    FOVCircle.Size = UDim2.fromOffset(value*2,value*2)
-end)
-
-CreateToggle("FOV Circle",true,function(value)
-    Config.FOVEnabled = value
-    FOVCircle.Visible = value and Config.AimAssist
-end)
-
-CreateToggle("Wall Check",true,function(value)
-    Config.WallCheck = value
-end)
-
-CreateToggle("Alive Check",true,function(value)
-    Config.AliveCheck = value
-end)
-
-CreateSlider("Aim Lock",5,100,100,function(value)
-    Config.AimStrength = value/100
-end)
-
---==============================================================
--- VISUAL
---==============================================================
-
-CreateToggle("ESP",false,function(value)
-    Config.ESP = value
-end)
-
-CreateToggle("Wallhack",false,function(value)
-    Config.Wallhack = value
-end)
-
-CreateToggle("Tracers",false,function(value)
-    Config.Tracers = value
-end)
-
---==============================================================
--- MOVEMENT
---==============================================================
-
-CreateToggle("WalkSpeed",false,function(value)
-    Config.WalkSpeedEnabled = value
-end)
-
-CreateSlider("Speed",16,100,16,function(value)
-    Config.WalkSpeed = value
-end)
-
-CreateToggle("JumpPower",false,function(value)
-    Config.JumpEnabled = value
-end)
-
-CreateSlider("Jump",25,150,50,function(value)
-    Config.JumpPower = value
-end)
-
---==============================================================
--- ANTI-LAG LOCAL
---==============================================================
-
-local SavedEffects = {}
-
-local function EnableAntiLag()
-    SavedEffects = {}
-    for _,obj in ipairs(workspace:GetDescendants()) do
-        if obj:IsA("ParticleEmitter")
-        or obj:IsA("Trail")
-        or obj:IsA("Beam")
-        or obj:IsA("Smoke")
-        or obj:IsA("Fire")
-        or obj:IsA("Sparkles") then
-            SavedEffects[obj] = obj.Enabled
-            obj.Enabled = false
-        end
-    end
-end
-
-local function DisableAntiLag()
-    for obj,value in pairs(SavedEffects) do
-        if obj and obj.Parent then
-            pcall(function()
-                obj.Enabled = value
-            end)
-        end
-    end
-    SavedEffects = {}
-end
-
-CreateToggle("Anti-Lag",false,function(value)
-    Config.AntiLag = value
-    if value then
-        EnableAntiLag()
-    else
-        DisableAntiLag()
-    end
-end)
-
---==============================================================
--- ESP
---==============================================================
-
-local ESPObjects = {}
-
-local function RemoveESP(player)
-    local data = ESPObjects[player]
-    if not data then return end
-    if data.Highlight then data.Highlight:Destroy() end
-    if data.Billboard then data.Billboard:Destroy() end
-    if data.Tracer then data.Tracer:Destroy() end
-    ESPObjects[player] = nil
-end
-
-local function CreateESP(player)
-    if player == LocalPlayer then return end
-    RemoveESP(player)
-
-    local character = player.Character
-    if not character then return end
-
-    local humanoid =
-        character:FindFirstChildOfClass("Humanoid")
-    local root =
-        character:FindFirstChild("HumanoidRootPart")
-
-    if not humanoid or not root then return end
-
-    local data = {}
-    ESPObjects[player] = data
-
-    local highlight = Instance.new("Highlight")
-    highlight.Name = "VentisHighlight"
-    highlight.Adornee = character
-    highlight.FillColor = Color3.fromRGB(255,45,45)
-    highlight.OutlineColor = Color3.fromRGB(255,255,255)
-    highlight.FillTransparency = 0.75
-    highlight.OutlineTransparency = 0
-    highlight.DepthMode = Enum.HighlightDepthMode.AlwaysOnTop
-    highlight.Enabled = Config.Wallhack
-    highlight.Parent = character
-    data.Highlight = highlight
-
-    local billboard = Instance.new("BillboardGui")
-    billboard.Name = "VentisESP"
-    billboard.Adornee = root
-    billboard.Size = UDim2.fromOffset(180,35)
-    billboard.StudsOffset = Vector3.new(0,3,0)
-    billboard.AlwaysOnTop = true
-    billboard.Enabled = Config.ESP
-    billboard.Parent = root
-
-    local label = Instance.new("TextLabel")
-    label.Size = UDim2.fromScale(1,1)
-    label.BackgroundTransparency = 1
-    label.TextColor3 = Color3.fromRGB(255,70,70)
-    label.TextStrokeTransparency = 0
-    label.TextSize = 13
-    label.Font = Enum.Font.GothamBold
-    label.Parent = billboard
-
-    data.Billboard = billboard
-    data.Label = label
-
-    local tracer = Instance.new("Frame")
-    tracer.Name = "VentisTracer"
-    tracer.AnchorPoint = Vector2.new(0.5,0.5)
-    tracer.BackgroundColor3 = Color3.fromRGB(255,45,45)
-    tracer.BorderSizePixel = 0
-    tracer.Size = UDim2.fromOffset(0,2)
-    tracer.Visible = false
-    tracer.Parent = Gui
-
-    local tc = Instance.new("UICorner")
-    tc.CornerRadius = UDim.new(1,0)
-    tc.Parent = tracer
-
-    data.Tracer = tracer
-end
-
-for _,player in ipairs(Players:GetPlayers()) do
-    if player ~= LocalPlayer then
-        if player.Character then
-            task.defer(CreateESP,player)
-        end
-        player.CharacterAdded:Connect(function()
-            task.wait(0.25)
-            CreateESP(player)
-        end)
-    end
-end
-
-Players.PlayerAdded:Connect(function(player)
-    player.CharacterAdded:Connect(function()
-        task.wait(0.25)
-        CreateESP(player)
-    end)
-end)
-
-Players.PlayerRemoving:Connect(RemoveESP)
-
---==============================================================
--- AIM
---==============================================================
-
-local LockedTarget = nil
-
-local function IsAlive(character)
-    if not character then return false end
-    local humanoid =
-        character:FindFirstChildOfClass("Humanoid")
-    return humanoid and humanoid.Health > 0
-end
-
-local function CanSee(part)
-    if not Config.WallCheck then return true end
-    if not part then return false end
-
-    local camera = workspace.CurrentCamera
-    if not camera then return false end
-
-    local origin = camera.CFrame.Position
-    local direction = part.Position-origin
-
-    local params = RaycastParams.new()
-    params.FilterType = Enum.RaycastFilterType.Exclude
-    params.FilterDescendantsInstances = {LocalPlayer.Character}
-
-    local result =
-        workspace:Raycast(origin,direction,params)
-
-    if not result then return true end
-    return result.Instance:IsDescendantOf(part.Parent)
-end
-
-local function IsValidTarget(target)
-    if not target or not target.Parent then return false end
-
-    local character = target.Parent
-
-    if Config.AliveCheck and not IsAlive(character) then
+    local fn, err = loadstring(code)
+    if not fn then
+        warn("⚡ VENTIS: erro no " .. label .. " → " .. tostring(err))
         return false
     end
-
-    local camera = workspace.CurrentCamera
-    if not camera then return false end
-
-    local pos,visible =
-        camera:WorldToViewportPoint(target.Position)
-
-    if not visible or pos.Z <= 0 then return false end
-
-    local center =
-        Vector2.new(
-            camera.ViewportSize.X/2,
-            camera.ViewportSize.Y/2
-        )
-
-    local distance =
-        (Vector2.new(pos.X,pos.Y)-center).Magnitude
-
-    if distance > Config.FOV then return false end
-    if not CanSee(target) then return false end
-
+    local ok, err2 = pcall(fn)
+    if not ok then
+        warn("⚡ VENTIS: falha na execução → " .. tostring(err2))
+        return false
+    end
+    print("⚡ VENTIS: " .. label .. " iniciado com sucesso.")
     return true
 end
 
-local function GetTarget()
-    local camera = workspace.CurrentCamera
-    if not camera then return nil end
+-- ============================================================
+-- ▓▓▓  SCREEN GUI  ▓▓▓
+-- ============================================================
 
-    local center =
-        Vector2.new(
-            camera.ViewportSize.X/2,
-            camera.ViewportSize.Y/2
-        )
+local old = playerGui:FindFirstChild("VentisLoader")
+if old then old:Destroy() end
 
-    local closest = nil
-    local closestDistance = Config.FOV
+local gui = Instance.new("ScreenGui")
+gui.Name = "VentisLoader"
+gui.ResetOnSpawn = false
+gui.IgnoreGuiInset = true
+gui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
+gui.DisplayOrder = 999
+gui.Parent = playerGui
 
-    for _,player in ipairs(Players:GetPlayers()) do
-        if player ~= LocalPlayer then
-            local character = player.Character
+-- ============================================================
+-- ▓▓▓  1. TELA DE LOADING  ▓▓▓
+-- ============================================================
 
-            if IsAlive(character) then
-                local head = character:FindFirstChild("Head")
+local loading = Instance.new("Frame")
+loading.Size = UDim2.new(1, 0, 1, 0)
+loading.BackgroundColor3 = THEME.bg
+loading.BorderSizePixel = 0
+loading.ZIndex = 10
+loading.Parent = gui
+gradient(loading, Color3.fromRGB(14, 14, 22), Color3.fromRGB(6, 6, 12), 90)
 
-                if head then
-                    local pos,visible =
-                        camera:WorldToViewportPoint(head.Position)
+local loadBox = Instance.new("Frame")
+loadBox.AnchorPoint = Vector2.new(0.5, 0.5)
+loadBox.Position = UDim2.new(0.5, 0, 0.5, 0)
+loadBox.Size = UDim2.new(0, 320, 0, 220)
+loadBox.BackgroundTransparency = 1
+loadBox.Parent = loading
 
-                    if visible and pos.Z > 0 then
-                        local distance =
-                            (Vector2.new(pos.X,pos.Y)-center).Magnitude
+local bigLogo = Instance.new("Frame")
+bigLogo.AnchorPoint = Vector2.new(0.5, 0)
+bigLogo.Position = UDim2.new(0.5, 0, 0, 0)
+bigLogo.Size = UDim2.new(0, 64, 0, 64)
+bigLogo.BackgroundColor3 = THEME.gold
+bigLogo.BorderSizePixel = 0
+bigLogo.Parent = loadBox
+corner(bigLogo, 18)
+gradient(bigLogo, THEME.gold, THEME.gold2, 45)
+stroke(bigLogo, THEME.goldLight, 2, 0.4)
 
-                        if distance < closestDistance
-                        and CanSee(head) then
-                            closest = head
-                            closestDistance = distance
-                        end
-                    end
-                end
-            end
+local bigIcon = Instance.new("TextLabel")
+bigIcon.Size = UDim2.new(1, 0, 1, 0)
+bigIcon.BackgroundTransparency = 1
+bigIcon.Text = "⚡"
+bigIcon.TextColor3 = Color3.new(1, 1, 1)
+bigIcon.TextSize = 38
+bigIcon.Font = Enum.Font.GothamBold
+bigIcon.Parent = bigLogo
+
+local loadTitle = Instance.new("TextLabel")
+loadTitle.Position = UDim2.new(0, 0, 0, 82)
+loadTitle.Size = UDim2.new(1, 0, 0, 24)
+loadTitle.BackgroundTransparency = 1
+loadTitle.Text = "VENTIS HUB"
+loadTitle.TextColor3 = THEME.text
+loadTitle.TextSize = 22
+loadTitle.Font = Enum.Font.GothamBlack
+loadTitle.Parent = loadBox
+
+local loadSub = Instance.new("TextLabel")
+loadSub.Position = UDim2.new(0, 0, 0, 106)
+loadSub.Size = UDim2.new(1, 0, 0, 14)
+loadSub.BackgroundTransparency = 1
+loadSub.Text = "★  PREMIUM  ★"
+loadSub.TextColor3 = THEME.gold
+loadSub.TextSize = 11
+loadSub.Font = Enum.Font.GothamBold
+loadSub.Parent = loadBox
+
+local progBg = Instance.new("Frame")
+progBg.Position = UDim2.new(0, 40, 0, 146)
+progBg.Size = UDim2.new(1, -80, 0, 6)
+progBg.BackgroundColor3 = Color3.fromRGB(30, 30, 44)
+progBg.BorderSizePixel = 0
+progBg.Parent = loadBox
+corner(progBg, 3)
+
+local progFill = Instance.new("Frame")
+progFill.Size = UDim2.new(0, 0, 1, 0)
+progFill.BackgroundColor3 = THEME.gold
+progFill.BorderSizePixel = 0
+progFill.Parent = progBg
+corner(progFill, 3)
+gradient(progFill, THEME.gold, THEME.gold2, 0)
+
+local progText = Instance.new("TextLabel")
+progText.Position = UDim2.new(0, 40, 0, 160)
+progText.Size = UDim2.new(1, -80, 0, 14)
+progText.BackgroundTransparency = 1
+progText.Text = "Inicializando..."
+progText.TextColor3 = THEME.textDim
+progText.TextSize = 10
+progText.Font = Enum.Font.Gotham
+progText.TextXAlignment = Enum.TextXAlignment.Left
+progText.Parent = loadBox
+
+local progPercent = Instance.new("TextLabel")
+progPercent.Position = UDim2.new(0, 40, 0, 160)
+progPercent.Size = UDim2.new(1, -80, 0, 14)
+progPercent.BackgroundTransparency = 1
+progPercent.Text = "0%"
+progPercent.TextColor3 = THEME.gold
+progPercent.TextSize = 10
+progPercent.Font = Enum.Font.GothamBold
+progPercent.TextXAlignment = Enum.TextXAlignment.Right
+progPercent.Parent = loadBox
+
+local loadVersion = Instance.new("TextLabel")
+loadVersion.AnchorPoint = Vector2.new(0.5, 1)
+loadVersion.Position = UDim2.new(0.5, 0, 1, -16)
+loadVersion.Size = UDim2.new(1, 0, 0, 14)
+loadVersion.BackgroundTransparency = 1
+loadVersion.Text = "v2.3 • Premium Edition"
+loadVersion.TextColor3 = THEME.textDim
+loadVersion.TextSize = 9
+loadVersion.Font = Enum.Font.Gotham
+loadVersion.Parent = loading
+
+local tips = {
+    "Inicializando módulos premium...",
+    "Carregando assets...",
+    "Verificando licença...",
+    "Otimizando conexões...",
+    "Preparando interface...",
+}
+
+task.spawn(function()
+    task.spawn(function()
+        while loading.Parent do
+            TweenService:Create(bigLogo,
+                TweenInfo.new(1.1, Enum.EasingStyle.Sine, Enum.EasingDirection.InOut, -1, true),
+                { Size = UDim2.new(0, 72, 0, 72) }):Play()
+            task.wait(2.2)
+        end
+    end)
+
+    local total = CONFIG.LOADING_TIME
+    local steps = 60
+    for i = 1, steps do
+        local pct = i / steps
+        TweenService:Create(progFill, TWEEN_FAST, {Size = UDim2.new(pct, 0, 1, 0)}):Play()
+        progPercent.Text = math.floor(pct * 100) .. "%"
+        if i % 12 == 0 then
+            progText.Text = tips[math.floor(i / 12) + 1] or "Finalizando..."
+        end
+        task.wait(total / steps)
+    end
+    progText.Text = "Pronto!"
+    task.wait(0.35)
+
+    TweenService:Create(loading, TWEEN_SOFT, {BackgroundTransparency = 1}):Play()
+    for _, d in ipairs(loading:GetDescendants()) do
+        if d:IsA("TextLabel") then
+            TweenService:Create(d, TWEEN_SOFT, {TextTransparency = 1}):Play()
+        elseif d:IsA("Frame") and d ~= loading then
+            TweenService:Create(d, TWEEN_SOFT, {BackgroundTransparency = 1}):Play()
+        elseif d:IsA("UIStroke") then
+            TweenService:Create(d, TWEEN_SOFT, {Transparency = 1}):Play()
         end
     end
+    task.wait(0.6)
+    loading:Destroy()
+end)
 
-    return closest
+-- ============================================================
+-- ▓▓▓  2. TELA DE KEY  ▓▓▓
+-- ============================================================
+
+local keyScreen = Instance.new("Frame")
+keyScreen.Size = UDim2.new(1, 0, 1, 0)
+keyScreen.BackgroundColor3 = THEME.bg
+keyScreen.BorderSizePixel = 0
+keyScreen.Visible = false
+keyScreen.ZIndex = 6
+keyScreen.Parent = gui
+gradient(keyScreen, Color3.fromRGB(14, 14, 22), Color3.fromRGB(6, 6, 12), 90)
+
+local keyBox = Instance.new("Frame")
+keyBox.AnchorPoint = Vector2.new(0.5, 0.5)
+keyBox.Position = UDim2.new(0.5, 0, 0.5, 0)
+keyBox.Size = UDim2.new(0, 320, 0, 280)
+keyBox.BackgroundColor3 = THEME.bgCard
+keyBox.BorderSizePixel = 0
+keyBox.Parent = keyScreen
+corner(keyBox, 14)
+stroke(keyBox, THEME.border, 1.5, 0.2)
+
+local keyTop = Instance.new("Frame")
+keyTop.Size = UDim2.new(1, 0, 0, 3)
+keyTop.BackgroundColor3 = THEME.gold
+keyTop.BorderSizePixel = 0
+keyTop.Parent = keyBox
+corner(keyTop, 14)
+gradient(keyTop, THEME.gold, THEME.gold2, 0)
+
+local keyIcon = Instance.new("TextLabel")
+keyIcon.Position = UDim2.new(0.5, 0, 0, 18)
+keyIcon.Size = UDim2.new(0, 40, 0, 40)
+keyIcon.AnchorPoint = Vector2.new(0.5, 0)
+keyIcon.BackgroundTransparency = 1
+keyIcon.Text = "🔑"
+keyIcon.TextSize = 30
+keyIcon.Parent = keyBox
+
+local keyTitle = Instance.new("TextLabel")
+keyTitle.Position = UDim2.new(0, 0, 0, 64)
+keyTitle.Size = UDim2.new(1, 0, 0, 22)
+keyTitle.BackgroundTransparency = 1
+keyTitle.Text = "Ativar Premium"
+keyTitle.TextColor3 = THEME.text
+keyTitle.TextSize = 17
+keyTitle.Font = Enum.Font.GothamBold
+keyTitle.Parent = keyBox
+
+local keySub = Instance.new("TextLabel")
+keySub.Position = UDim2.new(0, 0, 0, 86)
+keySub.Size = UDim2.new(1, 0, 0, 14)
+keySub.BackgroundTransparency = 1
+keySub.Text = "Digite sua key para desbloquear"
+keySub.TextColor3 = THEME.textDim
+keySub.TextSize = 10
+keySub.Font = Enum.Font.Gotham
+keySub.Parent = keyBox
+
+local keyInputFrame = Instance.new("Frame")
+keyInputFrame.Position = UDim2.new(0, 24, 0, 118)
+keyInputFrame.Size = UDim2.new(1, -48, 0, 40)
+keyInputFrame.BackgroundColor3 = Color3.fromRGB(12, 12, 18)
+keyInputFrame.BorderSizePixel = 0
+keyInputFrame.Parent = keyBox
+corner(keyInputFrame, 8)
+local inputStroke = stroke(keyInputFrame, THEME.border, 1)
+
+local keyInput = Instance.new("TextBox")
+keyInput.Size = UDim2.new(1, -20, 1, 0)
+keyInput.Position = UDim2.new(0, 10, 0, 0)
+keyInput.BackgroundTransparency = 1
+keyInput.Text = ""
+keyInput.PlaceholderText = "VENTIS-XXXX-XXXX-XXXX"
+keyInput.PlaceholderColor3 = THEME.textDim
+keyInput.TextColor3 = THEME.text
+keyInput.TextSize = 13
+keyInput.Font = Enum.Font.Code
+keyInput.TextXAlignment = Enum.TextXAlignment.Left
+keyInput.ClearTextOnFocus = false
+keyInput.Parent = keyInputFrame
+
+local statusLabel = Instance.new("TextLabel")
+statusLabel.Position = UDim2.new(0, 24, 0, 166)
+statusLabel.Size = UDim2.new(1, -48, 0, 14)
+statusLabel.BackgroundTransparency = 1
+statusLabel.Text = ""
+statusLabel.TextColor3 = THEME.textDim
+statusLabel.TextSize = 10
+statusLabel.Font = Enum.Font.Gotham
+statusLabel.Parent = keyBox
+
+local activateBtn = Instance.new("TextButton")
+activateBtn.Position = UDim2.new(0, 24, 0, 190)
+activateBtn.Size = UDim2.new(1, -48, 0, 38)
+activateBtn.BackgroundColor3 = THEME.gold
+activateBtn.Text = ""
+activateBtn.BorderSizePixel = 0
+activateBtn.AutoButtonColor = false
+activateBtn.Parent = keyBox
+corner(activateBtn, 8)
+gradient(activateBtn, THEME.gold, THEME.gold2, 0)
+
+local activateLabel = Instance.new("TextLabel")
+activateLabel.Size = UDim2.new(1, 0, 1, 0)
+activateLabel.BackgroundTransparency = 1
+activateLabel.Text = "ATIVAR"
+activateLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
+activateLabel.TextSize = 13
+activateLabel.Font = Enum.Font.GothamBlack
+activateLabel.Parent = activateBtn
+
+activateBtn.MouseEnter:Connect(function()
+    TweenService:Create(activateBtn, TWEEN_FAST, {BackgroundColor3 = THEME.goldLight}):Play()
+end)
+activateBtn.MouseLeave:Connect(function()
+    TweenService:Create(activateBtn, TWEEN_FAST, {BackgroundColor3 = THEME.gold}):Play()
+end)
+
+local getKeyLabel = Instance.new("TextLabel")
+getKeyLabel.Position = UDim2.new(0, 24, 0, 240)
+getKeyLabel.Size = UDim2.new(1, -48, 0, 22)
+getKeyLabel.BackgroundTransparency = 1
+getKeyLabel.Text = "Acesso restrito. Você precisa de uma key válida."
+getKeyLabel.TextColor3 = THEME.textDim
+getKeyLabel.TextSize = 10
+getKeyLabel.Font = Enum.Font.Gotham
+getKeyLabel.Parent = keyBox
+
+task.spawn(function()
+    task.wait(CONFIG.LOADING_TIME + 1.0)
+    keyScreen.Visible = true
+    keyScreen.BackgroundTransparency = 1
+    TweenService:Create(keyScreen, TWEEN_SOFT, {BackgroundTransparency = 0}):Play()
+
+    local origPos = keyBox.Position
+    keyBox.Position = UDim2.new(origPos.X.Scale, origPos.X.Offset, origPos.Y.Scale, origPos.Y.Offset + 30)
+    keyBox.BackgroundTransparency = 1
+    TweenService:Create(keyBox, TWEEN_SOFT, {
+        Position = origPos,
+        BackgroundTransparency = 0
+    }):Play()
+end)
+
+-- ============================================================
+-- ▓▓▓  FLUXO  ▓▓▓
+-- ============================================================
+
+local function fadeAndRun()
+    TweenService:Create(keyScreen, TWEEN_MED, {BackgroundTransparency = 1}):Play()
+    for _, d in ipairs(keyScreen:GetDescendants()) do
+        if d:IsA("TextLabel") or d:IsA("TextBox") then
+            TweenService:Create(d, TWEEN_MED, {TextTransparency = 1}):Play()
+        elseif d:IsA("Frame") then
+            TweenService:Create(d, TWEEN_MED, {BackgroundTransparency = 1}):Play()
+        elseif d:IsA("UIStroke") then
+            TweenService:Create(d, TWEEN_MED, {Transparency = 1}):Play()
+        end
+    end
+    task.wait(0.35)
+    keyScreen:Destroy()
+    if gui then gui:Destroy() end
+
+    local remote = fetchRemote(CONFIG.PAID_SCRIPT_URL)
+    if remote then
+        runScript(remote, "Premium")
+    else
+        warn("⚡ VENTIS: falha ao baixar o script do GitHub. Verifique a URL.")
+    end
 end
 
-local function AimAt(target)
-    if not IsValidTarget(target) then return end
-
-    local camera = workspace.CurrentCamera
-    local desired =
-        CFrame.lookAt(
-            camera.CFrame.Position,
-            target.Position
-        )
-
-    camera.CFrame =
-        camera.CFrame:Lerp(
-            desired,
-            math.clamp(Config.AimStrength,0.05,1)
-        )
-end
-
---==============================================================
--- MAIN LOOP
---==============================================================
-
-local fpsFrames = 0
-local fpsStart = os.clock()
-
-RunService.RenderStepped:Connect(function()
-    -- FPS
-    fpsFrames += 1
-    local now = os.clock()
-
-    if now-fpsStart >= 0.5 then
-        local fps =
-            math.floor(fpsFrames/(now-fpsStart))
-
-        FPSLabel.Text = "FPS: "..tostring(fps)
-
-        fpsFrames = 0
-        fpsStart = now
-    end
-
-    -- Movement
-    local character = LocalPlayer.Character
-    local humanoid =
-        character and character:FindFirstChildOfClass("Humanoid")
-
-    if humanoid then
-        if Config.WalkSpeedEnabled then
-            humanoid.WalkSpeed = Config.WalkSpeed
-        end
-
-        if Config.JumpEnabled then
-            humanoid.JumpPower = Config.JumpPower
-        end
-    end
-
-    -- ESP
-    local camera = workspace.CurrentCamera
-
-    for player,data in pairs(ESPObjects) do
-        local char = player.Character
-        local hum =
-            char and char:FindFirstChildOfClass("Humanoid")
-        local root =
-            char and char:FindFirstChild("HumanoidRootPart")
-
-        if hum and root and hum.Health > 0 then
-            data.Highlight.Enabled = Config.Wallhack
-            data.Billboard.Enabled = Config.ESP
-
-            local distance =
-                (camera.CFrame.Position-root.Position).Magnitude
-
-            data.Label.Text =
-                player.Name.." • "..math.floor(distance)
-
-            if Config.Tracers then
-                local pos,onScreen =
-                    camera:WorldToViewportPoint(root.Position)
-
-                if onScreen and pos.Z > 0 then
-                    local viewport = camera.ViewportSize
-
-                    local startPoint =
-                        Vector2.new(viewport.X/2,viewport.Y)
-
-                    local endPoint =
-                        Vector2.new(pos.X,pos.Y)
-
-                    local difference =
-                        endPoint-startPoint
-
-                    local length = difference.Magnitude
-
-                    if length > 1 then
-                        local middle =
-                            (startPoint+endPoint)/2
-
-                        data.Tracer.Position =
-                            UDim2.fromOffset(middle.X,middle.Y)
-
-                        data.Tracer.Size =
-                            UDim2.fromOffset(length,2)
-
-                        data.Tracer.Rotation =
-                            math.deg(
-                                math.atan2(
-                                    difference.Y,
-                                    difference.X
-                                )
-                            )
-
-                        data.Tracer.Visible = true
-                    else
-                        data.Tracer.Visible = false
-                    end
-                else
-                    data.Tracer.Visible = false
-                end
-            else
-                data.Tracer.Visible = false
-            end
-        else
-            data.Highlight.Enabled = false
-            data.Billboard.Enabled = false
-            data.Tracer.Visible = false
-        end
-    end
-
-    -- Aim
-    if not Config.AimAssist then
-        LockedTarget = nil
-        FOVCircle.Visible = false
+activateBtn.MouseButton1Click:Connect(function()
+    local key = keyInput.Text
+    if not key or #key < 4 then
+        statusLabel.Text = "✗ Digite uma key válida."
+        statusLabel.TextColor3 = THEME.danger
+        inputStroke.Color = THEME.danger
+        task.wait(1)
+        inputStroke.Color = THEME.border
         return
     end
 
-    FOVCircle.Visible = Config.FOVEnabled
+    statusLabel.Text = "Verificando..."
+    statusLabel.TextColor3 = THEME.gold
+    activateLabel.Text = "VERIFICANDO..."
+    task.wait(0.6)
 
-    if LockedTarget and not IsValidTarget(LockedTarget) then
-        LockedTarget = nil
-    end
-
-    if not LockedTarget then
-        LockedTarget = GetTarget()
-    end
-
-    if LockedTarget then
-        AimAt(LockedTarget)
-    end
-end)
-
---==============================================================
--- OPEN / CLOSE
---==============================================================
-
-local menuOpen = true
-
-OpenButton.MouseButton1Click:Connect(function()
-    menuOpen = not menuOpen
-    Main.Visible = menuOpen
-end)
-
---==============================================================
--- DRAG
---==============================================================
-
-local dragging = false
-local dragStart
-local startPosition
-
-Title.InputBegan:Connect(function(input)
-    if input.UserInputType == Enum.UserInputType.MouseButton1
-    or input.UserInputType == Enum.UserInputType.Touch then
-        dragging = true
-        dragStart = input.Position
-        startPosition = Main.Position
+    if validateKey(key) then
+        statusLabel.Text = "✓ Key válida! Bem-vindo ao Premium."
+        statusLabel.TextColor3 = THEME.success
+        activateLabel.Text = "✓ ATIVADO"
+        inputStroke.Color = THEME.success
+        safeWrite(CONFIG.KEY_FILE, key)
+        task.wait(0.9)
+        fadeAndRun()
+    else
+        statusLabel.Text = "✗ Key inválida. Verifique e tente novamente."
+        statusLabel.TextColor3 = THEME.danger
+        activateLabel.Text = "ATIVAR"
+        inputStroke.Color = THEME.danger
+        task.wait(1.5)
+        inputStroke.Color = THEME.border
     end
 end)
 
-UserInputService.InputChanged:Connect(function(input)
-    if dragging and
-    (input.UserInputType == Enum.UserInputType.MouseMovement
-    or input.UserInputType == Enum.UserInputType.Touch) then
-
-        local delta = input.Position-dragStart
-
-        Main.Position =
-            UDim2.new(
-                startPosition.X.Scale,
-                startPosition.X.Offset+delta.X,
-                startPosition.Y.Scale,
-                startPosition.Y.Offset+delta.Y
-            )
+keyInput.FocusLost:Connect(function(enterPressed)
+    if enterPressed then
+        activateBtn:FireAction()
     end
 end)
 
-UserInputService.InputEnded:Connect(function(input)
-    if input.UserInputType == Enum.UserInputType.MouseButton1
-    or input.UserInputType == Enum.UserInputType.Touch then
-        dragging = false
+task.spawn(function()
+    task.wait(CONFIG.LOADING_TIME + 1.4)
+    local saved = safeRead(CONFIG.KEY_FILE)
+    if saved and #saved > 0 then
+        keyInput.Text = saved
+        statusLabel.Text = "Key salva encontrada. Validando..."
+        statusLabel.TextColor3 = THEME.gold
+        task.wait(0.8)
+        if validateKey(saved) then
+            statusLabel.Text = "✓ Bem-vindo de volta!"
+            statusLabel.TextColor3 = THEME.success
+            task.wait(0.6)
+            fadeAndRun()
+        else
+            statusLabel.Text = "Key salva expirou. Digite novamente."
+            statusLabel.TextColor3 = THEME.danger
+            keyInput.Text = ""
+            safeWrite(CONFIG.KEY_FILE, "")
+        end
     end
 end)
 
---==============================================================
--- RESPAWN
---==============================================================
-
-LocalPlayer.CharacterAdded:Connect(function()
-    LockedTarget = nil
-
-    task.wait(0.3)
-
-end)
-
-print("==========================================")
-print("          VENTIS HUB V10")
-print("          by ventis321")
-print("          MOBILE UI READY")
-print("==========================================")
+print("==============================================")
+print("⚡ VENTIS HUB — PREMIUM LOADER V2.3 (GREEN)")
+print("30 keys ativas • Loading → Key → GitHub")
+print("==============================================")
