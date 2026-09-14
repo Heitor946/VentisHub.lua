@@ -140,7 +140,7 @@ TrigStroke.Thickness = 1
 TrigStroke.Transparency = 0.3
 TrigStroke.Parent = Trigger
 
--- ===== Crosshair (4 braços em X + anel central) =====
+-- Crosshair
 local IconHolder = Instance.new("Frame")
 IconHolder.Size = UDim2.new(0, 40, 0, 40)
 IconHolder.Position = UDim2.new(0.5, 0, 0.5, 0)
@@ -170,8 +170,6 @@ local function MakeArm(rot)
     tip.BorderSizePixel = 0
     tip.ZIndex = 12
     tip.Parent = arm
-
-    return arm
 end
 
 MakeArm(-45)
@@ -193,7 +191,6 @@ CenterStroke.Color = ICON_COLOR
 CenterStroke.Thickness = 2
 CenterStroke.Parent = CenterRing
 
--- Lista de todas as peças do ícone pra trocar cor depois
 local IconParts = {}
 for _, child in ipairs(IconHolder:GetChildren()) do
     if child:IsA("Frame") then
@@ -320,7 +317,7 @@ end
 
 local RowMira,   _, RowMiraCheck,   RowMiraTxt,   RowMiraHit   = MakeRow(1,  "MIRA: Souls")
 local RowZoom,   _, RowZoomCheck,   RowZoomTxt,   _            = MakeRow(29, "ZOOM: 8m")
-local RowTravar, _, RowTravarCheck, RowTravarTxt, RowTravarHit = MakeRow(57, "TRAVAR JANELA")
+local RowTravar, _, RowTravarCheck, RowTravarTxt, RowTravarHit = MakeRow(57, "TRAVAR")
 
 RowMiraCheck.Visible = true
 RowZoomCheck.Visible = true
@@ -681,40 +678,79 @@ local function ToggleWindow()
 end
 
 -- ============================================================
--- ============ INPUT =========================================
+-- ============ INPUT (drag unificado) ========================
 -- ============================================================
-Trigger.MouseButton1Click:Connect(ToggleWindow)
-CloseBtn.MouseButton1Click:Connect(CloseWindow)
+-- dragging = "trigger" | "window" | nil
+local dragging     = nil
+local dragStart    = nil
+local dragStartPos = nil
+local didDrag      = false
 
-local dragActive, dragStart, winStart = false, nil, nil
+-- Toque/clique começou na bolinha
+Trigger.InputBegan:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.Touch
+    or input.UserInputType == Enum.UserInputType.MouseButton1 then
+        dragging     = "trigger"
+        didDrag      = false
+        dragStart    = Vector2.new(input.Position.X, input.Position.Y)
+        dragStartPos = Trigger.Position
+    end
+end)
+
+-- Toque/clique começou na barra de título
 TitleBar.InputBegan:Connect(function(input)
     if input.UserInputType == Enum.UserInputType.Touch
     or input.UserInputType == Enum.UserInputType.MouseButton1 then
-        dragActive = true
-        dragStart  = Vector2.new(input.Position.X, input.Position.Y)
-        winStart   = Window.Position
+        dragging     = "window"
+        didDrag      = false
+        dragStart    = Vector2.new(input.Position.X, input.Position.Y)
+        dragStartPos = Window.Position
     end
 end)
+
+-- Move (dedo ou mouse)
 local function TryDrag(input)
-    if not dragActive or not Movable then return end
-    local cur = Vector2.new(input.Position.X, input.Position.Y)
+    if not dragging or not Movable then return end
+    local cur   = Vector2.new(input.Position.X, input.Position.Y)
     local delta = cur - dragStart
     if delta.Magnitude < DRAG_MIN then return end
-    Window.Position = UDim2.new(
-        winStart.X.Scale, winStart.X.Offset + delta.X,
-        winStart.Y.Scale, winStart.Y.Offset + delta.Y
+    didDrag = true
+
+    local targetGui = (dragging == "trigger") and Trigger or Window
+    targetGui.Position = UDim2.new(
+        dragStartPos.X.Scale, dragStartPos.X.Offset + delta.X,
+        dragStartPos.Y.Scale, dragStartPos.Y.Offset + delta.Y
     )
 end
+
 UserInputService.TouchMoved:Connect(TryDrag)
 UserInputService.InputChanged:Connect(function(input)
     if input.UserInputType == Enum.UserInputType.MouseMovement then TryDrag(input) end
 end)
-local function EndDrag() dragActive = false end
+
+-- Soltou
+local function EndDrag()
+    if not dragging then return end
+    local wasDrag = didDrag
+    local which   = dragging
+    dragging = nil
+    didDrag  = false
+
+    -- Tap na bolinha SEM arrastar = toggle janela
+    if which == "trigger" and not wasDrag then
+        ToggleWindow()
+    end
+end
+
 UserInputService.TouchEnded:Connect(EndDrag)
 UserInputService.InputEnded:Connect(function(input)
     if input.UserInputType == Enum.UserInputType.MouseButton1 then EndDrag() end
 end)
 
+-- ============================================================
+-- ============ BOTÕES ========================================
+-- ============================================================
+CloseBtn.MouseButton1Click:Connect(CloseWindow)
 EnableBtn.MouseButton1Click:Connect(ToggleLockOn)
 
 RowMiraHit.MouseButton1Click:Connect(function()
@@ -728,6 +764,7 @@ RowTravarHit.MouseButton1Click:Connect(function()
     RowTravarCheck.Visible = not Movable
 end)
 
+-- Zoom hold
 local zoomHold = false
 local function StartZoomHold(d)
     ChangeZoom(d)
