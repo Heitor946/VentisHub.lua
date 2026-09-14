@@ -1,1498 +1,847 @@
---[[
-==============================================================
-                    VENTIS HUB V11
-               AIM • VISUAL • FPS • MOVEMENT
-                       by ventis321
-==============================================================
-
-LocalScript:
-StarterPlayer > StarterPlayerScripts
-
-ABAS:
-🎯 AIM
-👁 VISUAL
-⚡ FPS
-🏃 MOVEMENT
-
-ANTI-LAG:
-🚀 MEGA BOOST
-🔄 RESTAURAR GRÁFICOS
-==============================================================
-]]
-
---==============================================================
--- SERVICES
---==============================================================
-
-local Players = game:GetService("Players")
-local RunService = game:GetService("RunService")
+-- ============================================================
+-- VENTIS HUB - LOCK ON | Bolinha estilo Roblox (crosshair azul)
+-- Local: StarterPlayer > StarterPlayerScripts (LocalScript)
+-- ============================================================
+local Players          = game:GetService("Players")
+local RunService       = game:GetService("RunService")
 local UserInputService = game:GetService("UserInputService")
-local Lighting = game:GetService("Lighting")
 
-local LocalPlayer = Players.LocalPlayer
-local PlayerGui = LocalPlayer:WaitForChild("PlayerGui")
-local Terrain = workspace.Terrain
+local Player = Players.LocalPlayer
+local Camera = workspace.CurrentCamera
 
---==============================================================
--- CONFIG
---==============================================================
+-- ===== CONFIG =====
+local MAX_DISTANCE   = 150
+local SMOOTH         = 15
+local DRAG_MIN       = 6
+local TP_HEIGHT      = 1.5
+local ZOOM_MIN       = 0
+local ZOOM_MAX       = 40
+local ZOOM_STEP      = 1
+local ZOOM_HOLD_TICK = 0.08
 
-local Config = {
-    AimAssist = false,
-    FOV = 80,
-    FOVEnabled = true,
-    AimStrength = 1,
-    WallCheck = true,
-    AliveCheck = true,
+-- ===== CORES AZUIS =====
+local RET_COLOR  = Color3.fromRGB(60, 150, 255)
+local RET_ACCENT = Color3.fromRGB(130, 200, 255)
+local HL_FILL    = Color3.fromRGB(60, 150, 255)
+local HL_OUTLINE = Color3.fromRGB(180, 220, 255)
+local ICON_COLOR = Color3.fromRGB(80, 170, 255)
 
-    ESP = false,
-    WallHighlight = false,
-    Tracers = false,
-    FPSCounter = true,
+-- ===== PALETA W95 =====
+local W95_BG        = Color3.fromRGB(192,192,192)
+local W95_HIGHLIGHT = Color3.fromRGB(255,255,255)
+local W95_SHADOW    = Color3.fromRGB(128,128,128)
+local W95_DARK      = Color3.fromRGB(64,64,64)
+local W95_TITLE_A   = Color3.fromRGB(0,0,128)
+local W95_TITLE_B   = Color3.fromRGB(16,132,208)
+local W95_TEXT      = Color3.fromRGB(0,0,0)
+local W95_WHITE     = Color3.fromRGB(255,255,255)
+local W95_GREEN     = Color3.fromRGB(0,200,0)
+local W95_NAVY      = Color3.fromRGB(0,0,128)
+local W95_RED       = Color3.fromRGB(200,30,30)
 
-    WalkSpeed = false,
-    Speed = 16,
-    JumpPower = false,
-    Jump = 50,
+-- ===== ESTADO =====
+local LockOn         = false
+local Target         = nil
+local Movable        = true
+local CameraDistance = 8
+local BodyHidden     = false
+local currentReticle = 1
+local reticleAngle   = 0
 
-    MegaBoost = false
+local RETICLE_NAMES = {
+    "Souls", "Ponto", "Cruz", "Diamante", "Triângulo", "Hexágono",
+    "Quadrado", "Chevron", "Colchete", "Estrela", "Spinner", "Alvo",
 }
 
---==============================================================
--- GRAPHICS SAVE SYSTEM
---==============================================================
+-- ============================================================
+-- ============ HELPERS W95 ===================================
+-- ============================================================
+local function AddBevel(gui, raised)
+    gui.BorderSizePixel = 0
+    local topC = raised and W95_HIGHLIGHT or W95_DARK
+    local botC = raised and W95_DARK or W95_HIGHLIGHT
+    local z = (gui.ZIndex or 1) + 1
+    local t = Instance.new("Frame", gui)
+    t.Size = UDim2.new(1,0,0,1); t.BackgroundColor3 = topC
+    t.BorderSizePixel = 0; t.ZIndex = z
+    local l = Instance.new("Frame", gui)
+    l.Size = UDim2.new(0,1,1,0); l.BackgroundColor3 = topC
+    l.BorderSizePixel = 0; l.ZIndex = z
+    local b = Instance.new("Frame", gui)
+    b.Size = UDim2.new(1,0,0,1); b.Position = UDim2.new(0,0,1,-1)
+    b.BackgroundColor3 = botC; b.BorderSizePixel = 0; b.ZIndex = z
+    local r = Instance.new("Frame", gui)
+    r.Size = UDim2.new(0,1,1,0); r.Position = UDim2.new(1,-1,0,0)
+    r.BackgroundColor3 = botC; r.BorderSizePixel = 0; r.ZIndex = z
+end
 
-local Saved = {}
+local function Sunken(parent, size, pos, bg)
+    local f = Instance.new("Frame")
+    f.Size = size; f.Position = pos
+    f.BackgroundColor3 = bg or W95_WHITE
+    f.BorderSizePixel = 0
+    f.Parent = parent
+    AddBevel(f, false)
+    return f
+end
 
-local function Save(obj, property)
-    if not obj then return end
+local function W95Btn(parent, size, pos, text, fontSize, z)
+    local b = Instance.new("TextButton")
+    b.Size = size; b.Position = pos
+    b.BackgroundColor3 = W95_BG
+    b.Text = ""; b.BorderSizePixel = 0
+    b.AutoButtonColor = false
+    b.ZIndex = z or 6
+    b.Parent = parent
+    AddBevel(b, true)
+    local lbl = Instance.new("TextLabel")
+    lbl.Size = UDim2.new(1,-4,1,-4); lbl.Position = UDim2.new(0,2,0,2)
+    lbl.BackgroundTransparency = 1
+    lbl.Text = text
+    lbl.Font = Enum.Font.SourceSansBold
+    lbl.TextSize = fontSize or 14
+    lbl.TextColor3 = W95_TEXT
+    lbl.ZIndex = (z or 6) + 2
+    lbl.Parent = b
+    return b, lbl
+end
 
-    Saved[obj] = Saved[obj] or {}
+-- ============================================================
+-- ============ GUI ===========================================
+-- ============================================================
+local ScreenGui = Instance.new("ScreenGui")
+ScreenGui.Name = "VentisWin95"
+ScreenGui.ResetOnSpawn = false
+ScreenGui.IgnoreGuiInset = true
+ScreenGui.DisplayOrder = 999
+ScreenGui.Parent = Player:WaitForChild("PlayerGui")
 
-    if Saved[obj][property] == nil then
-        local ok, value = pcall(function()
-            return obj[property]
-        end)
+-- ============================================================
+-- ============ BOLINHA (crosshair azul) ======================
+-- ============================================================
+local Trigger = Instance.new("TextButton")
+Trigger.Name = "Trigger"
+Trigger.AnchorPoint = Vector2.new(1, 0.5)
+Trigger.Size = UDim2.new(0, 60, 0, 60)
+Trigger.Position = UDim2.new(1, -22, 0.62, 0)
+Trigger.BackgroundColor3 = Color3.fromRGB(32, 32, 38)
+Trigger.BackgroundTransparency = 0.05
+Trigger.Text = ""
+Trigger.BorderSizePixel = 0
+Trigger.AutoButtonColor = false
+Trigger.ZIndex = 10
+Trigger.Active = true
+Trigger.Parent = ScreenGui
+Instance.new("UICorner", Trigger).CornerRadius = UDim.new(1, 0)
 
-        if ok then
-            Saved[obj][property] = value
+local TrigStroke = Instance.new("UIStroke")
+TrigStroke.Color = Color3.fromRGB(70, 70, 80)
+TrigStroke.Thickness = 1
+TrigStroke.Transparency = 0.3
+TrigStroke.Parent = Trigger
+
+-- ===== Crosshair (4 braços em X + anel central) =====
+local IconHolder = Instance.new("Frame")
+IconHolder.Size = UDim2.new(0, 40, 0, 40)
+IconHolder.Position = UDim2.new(0.5, 0, 0.5, 0)
+IconHolder.AnchorPoint = Vector2.new(0.5, 0.5)
+IconHolder.BackgroundTransparency = 1
+IconHolder.ZIndex = 11
+IconHolder.Parent = Trigger
+
+local function MakeArm(rot)
+    local arm = Instance.new("Frame")
+    arm.Size = UDim2.new(0, 16, 0, 4)
+    arm.Position = UDim2.new(0.5, 0, 0.5, 0)
+    arm.AnchorPoint = Vector2.new(0, 0.5)
+    arm.Rotation = rot
+    arm.BackgroundColor3 = ICON_COLOR
+    arm.BorderSizePixel = 0
+    arm.ZIndex = 12
+    arm.Parent = IconHolder
+    Instance.new("UICorner", arm).CornerRadius = UDim.new(1, 0)
+
+    local tip = Instance.new("Frame")
+    tip.Size = UDim2.new(0, 4, 0, 4)
+    tip.Position = UDim2.new(1, -1, 0.5, 0)
+    tip.AnchorPoint = Vector2.new(0.5, 0.5)
+    tip.Rotation = 45
+    tip.BackgroundColor3 = ICON_COLOR
+    tip.BorderSizePixel = 0
+    tip.ZIndex = 12
+    tip.Parent = arm
+
+    return arm
+end
+
+MakeArm(-45)
+MakeArm(45)
+MakeArm(135)
+MakeArm(-135)
+
+local CenterRing = Instance.new("Frame")
+CenterRing.Size = UDim2.new(0, 12, 0, 12)
+CenterRing.Position = UDim2.new(0.5, 0, 0.5, 0)
+CenterRing.AnchorPoint = Vector2.new(0.5, 0.5)
+CenterRing.BackgroundTransparency = 1
+CenterRing.ZIndex = 13
+CenterRing.Parent = IconHolder
+Instance.new("UICorner", CenterRing).CornerRadius = UDim.new(1, 0)
+
+local CenterStroke = Instance.new("UIStroke")
+CenterStroke.Color = ICON_COLOR
+CenterStroke.Thickness = 2
+CenterStroke.Parent = CenterRing
+
+-- Lista de todas as peças do ícone pra trocar cor depois
+local IconParts = {}
+for _, child in ipairs(IconHolder:GetChildren()) do
+    if child:IsA("Frame") then
+        table.insert(IconParts, child)
+        for _, sub in ipairs(child:GetChildren()) do
+            if sub:IsA("Frame") then table.insert(IconParts, sub) end
         end
     end
 end
 
---==============================================================
--- MEGA BOOST FUNCTIONS
---==============================================================
+-- ============================================================
+-- ============ JANELA ========================================
+-- ============================================================
+local Window = Instance.new("Frame")
+Window.Name = "Window"
+Window.Size = UDim2.new(0, 260, 0, 175)
+Window.Position = UDim2.new(0.5, -280, 0.5, -87)
+Window.BackgroundColor3 = W95_BG
+Window.BorderSizePixel = 0
+Window.Visible = true
+Window.ZIndex = 5
+Window.Parent = ScreenGui
+AddBevel(Window, true)
 
-local function RemoveTextures(obj)
+local TitleBar = Instance.new("Frame")
+TitleBar.Size = UDim2.new(1,-6,0,22); TitleBar.Position = UDim2.new(0,3,0,3)
+TitleBar.BackgroundColor3 = W95_NAVY; TitleBar.BorderSizePixel = 0
+TitleBar.ZIndex = 6; TitleBar.Parent = Window
 
-    if obj:IsA("Decal") or obj:IsA("Texture") then
-        Save(obj, "Transparency")
-        obj.Transparency = 1
+local TitleGrad = Instance.new("UIGradient")
+TitleGrad.Color = ColorSequence.new({
+    ColorSequenceKeypoint.new(0, W95_TITLE_A),
+    ColorSequenceKeypoint.new(1, W95_TITLE_B),
+})
+TitleGrad.Parent = TitleBar
 
-    elseif obj:IsA("MeshPart") then
-        Save(obj, "TextureID")
-        obj.TextureID = ""
+local TitleIcon = Instance.new("TextLabel")
+TitleIcon.Size = UDim2.new(0,18,1,0); TitleIcon.Position = UDim2.new(0,2,0,0)
+TitleIcon.BackgroundTransparency = 1
+TitleIcon.Text = "⚡"
+TitleIcon.Font = Enum.Font.SourceSansBold
+TitleIcon.TextSize = 14
+TitleIcon.TextColor3 = W95_WHITE
+TitleIcon.ZIndex = 7
+TitleIcon.Parent = TitleBar
 
-    elseif obj:IsA("SpecialMesh") then
-        Save(obj, "TextureId")
-        obj.TextureId = ""
+local TitleText = Instance.new("TextLabel")
+TitleText.Size = UDim2.new(1,-40,1,0); TitleText.Position = UDim2.new(0,20,0,0)
+TitleText.BackgroundTransparency = 1
+TitleText.Text = "VENTIS HUB  v1.0"
+TitleText.Font = Enum.Font.SourceSansBold
+TitleText.TextSize = 12
+TitleText.TextColor3 = W95_WHITE
+TitleText.TextXAlignment = Enum.TextXAlignment.Left
+TitleText.ZIndex = 7
+TitleText.Parent = TitleBar
+
+local CloseBtn, CloseLbl = W95Btn(TitleBar, UDim2.new(0,18,0,16),
+                                  UDim2.new(1,-20,0,3), "✕", 12, 8)
+CloseLbl.TextColor3 = W95_RED
+
+local EnableBtn, EnableLbl = W95Btn(Window,
+    UDim2.new(1,-12, 0,28), UDim2.new(0,6,0,29), "LOCK: OFF", 14, 6)
+
+local ModHeader = Instance.new("Frame")
+ModHeader.Size = UDim2.new(1,-12,0,18); ModHeader.Position = UDim2.new(0,6,0,61)
+ModHeader.BackgroundColor3 = W95_NAVY; ModHeader.BorderSizePixel = 0
+ModHeader.ZIndex = 6; ModHeader.Parent = Window
+
+local ModHeaderText = Instance.new("TextLabel")
+ModHeaderText.Size = UDim2.new(1,-8,1,0); ModHeaderText.Position = UDim2.new(0,6,0,0)
+ModHeaderText.BackgroundTransparency = 1
+ModHeaderText.Text = "▶  MÓDULOS"
+ModHeaderText.Font = Enum.Font.SourceSansBold
+ModHeaderText.TextSize = 12
+ModHeaderText.TextColor3 = W95_WHITE
+ModHeaderText.TextXAlignment = Enum.TextXAlignment.Left
+ModHeaderText.ZIndex = 7
+ModHeaderText.Parent = ModHeader
+
+local ModuleList = Sunken(Window, UDim2.new(1,-12,0,88), UDim2.new(0,6,0,81), W95_WHITE)
+ModuleList.ZIndex = 6
+
+local function MakeRow(y, label)
+    local row = Instance.new("Frame")
+    row.Size = UDim2.new(1,0,0,28); row.Position = UDim2.new(0,0,0,y)
+    row.BackgroundTransparency = 1; row.ZIndex = 7; row.Parent = ModuleList
+
+    local cb = Instance.new("Frame")
+    cb.Size = UDim2.new(0,14,0,14); cb.Position = UDim2.new(0,6,0.5,-7)
+    cb.BackgroundColor3 = W95_WHITE; cb.BorderSizePixel = 0
+    cb.ZIndex = 8; cb.Parent = row
+    AddBevel(cb, false)
+
+    local check = Instance.new("TextLabel")
+    check.Size = UDim2.new(1,0,1,0); check.BackgroundTransparency = 1
+    check.Text = "✓"; check.Font = Enum.Font.SourceSansBold
+    check.TextSize = 12; check.TextColor3 = W95_TEXT
+    check.Visible = false; check.ZIndex = 9; check.Parent = cb
+
+    local txt = Instance.new("TextLabel")
+    txt.Size = UDim2.new(1,-32,1,0); txt.Position = UDim2.new(0,26,0,0)
+    txt.BackgroundTransparency = 1
+    txt.Text = label
+    txt.Font = Enum.Font.SourceSansBold
+    txt.TextSize = 12
+    txt.TextColor3 = W95_TEXT
+    txt.TextXAlignment = Enum.TextXAlignment.Left
+    txt.ZIndex = 8; txt.Parent = row
+
+    local sep = Instance.new("Frame")
+    sep.Size = UDim2.new(1,-8,0,1); sep.Position = UDim2.new(0,4,1,-1)
+    sep.BackgroundColor3 = W95_SHADOW; sep.BorderSizePixel = 0
+    sep.ZIndex = 7; sep.Parent = row
+
+    local hit = Instance.new("TextButton")
+    hit.Size = UDim2.new(1,0,1,0)
+    hit.BackgroundTransparency = 1
+    hit.Text = ""; hit.AutoButtonColor = false
+    hit.ZIndex = 6; hit.Parent = row
+
+    return row, cb, check, txt, hit
+end
+
+local RowMira,   _, RowMiraCheck,   RowMiraTxt,   RowMiraHit   = MakeRow(1,  "MIRA: Souls")
+local RowZoom,   _, RowZoomCheck,   RowZoomTxt,   _            = MakeRow(29, "ZOOM: 8m")
+local RowTravar, _, RowTravarCheck, RowTravarTxt, RowTravarHit = MakeRow(57, "TRAVAR JANELA")
+
+RowMiraCheck.Visible = true
+RowZoomCheck.Visible = true
+
+local ZoomMinus, ZoomMinusLbl = W95Btn(RowZoom, UDim2.new(0,26,0,22), UDim2.new(1,-60,0.5,-11), "−", 14, 9)
+local ZoomPlus,  ZoomPlusLbl  = W95Btn(RowZoom, UDim2.new(0,26,0,22), UDim2.new(1,-30,0.5,-11), "+", 14, 9)
+
+-- ============================================================
+-- ============ RETICLE GUI ===================================
+-- ============================================================
+local ReticleGui = Instance.new("BillboardGui")
+ReticleGui.Size = UDim2.new(0, 130, 0, 130)
+ReticleGui.AlwaysOnTop = true
+ReticleGui.LightInfluence = 0
+ReticleGui.ResetOnSpawn = false
+ReticleGui.Enabled = false
+ReticleGui.Parent = ScreenGui
+
+local function NewF(parent, size, pos, anchor)
+    local f = Instance.new("Frame")
+    f.Size = size or UDim2.new(1,0,1,0)
+    f.Position = pos or UDim2.new(0,0,0,0)
+    f.AnchorPoint = anchor or Vector2.new(0,0)
+    f.BackgroundTransparency = 1
+    f.BorderSizePixel = 0
+    f.Parent = parent
+    return f
+end
+local function NewBar(parent, w, h, x, y, rot)
+    local f = Instance.new("Frame")
+    f.Size = UDim2.new(0,w,0,h)
+    f.Position = UDim2.new(0.5,x,0.5,y)
+    f.AnchorPoint = Vector2.new(0.5,0.5)
+    f.BorderSizePixel = 0
+    f.Rotation = rot or 0
+    f.BackgroundColor3 = RET_COLOR
+    f.Parent = parent
+    Instance.new("UICorner", f).CornerRadius = UDim.new(1,0)
+    return f
+end
+local function NewRing(parent, size, thickness)
+    local f = Instance.new("Frame")
+    f.Size = UDim2.new(0,size,0,size)
+    f.Position = UDim2.new(0.5,0,0.5,0)
+    f.AnchorPoint = Vector2.new(0.5,0.5)
+    f.BackgroundTransparency = 1
+    f.BorderSizePixel = 0
+    f.Parent = parent
+    Instance.new("UICorner", f).CornerRadius = UDim.new(1,0)
+    local s = Instance.new("UIStroke", f)
+    s.Thickness = thickness or 2
+    s.Color = RET_COLOR
+    return f, s
+end
+local function NewSpinner(parent)
+    return NewF(parent, UDim2.new(1,0,1,0), UDim2.new(0.5,0,0.5,0), Vector2.new(0.5,0.5))
+end
+
+local function BuildSouls(p)
+    local root = NewF(p)
+    local _, s1 = NewRing(root, 90, 3)
+    local _, s2 = NewRing(root, 74, 1); s2.Color = RET_ACCENT
+    NewBar(root,4,16,0,-56); NewBar(root,4,16,0,56)
+    NewBar(root,16,4,-56,0); NewBar(root,16,4,56,0)
+    NewBar(root,5,5,0,0)
+    return { root=root, pulse=function(pl)
+        s1.Transparency = 0.05 + pl*0.15
+        s2.Transparency = 0.5  + pl*0.3
+    end }
+end
+local function BuildDot(p)
+    local root = NewF(p)
+    local dot = NewBar(root,6,6,0,0)
+    NewBar(root,2,8,0,-20); NewBar(root,2,8,0,20)
+    NewBar(root,8,2,-20,0); NewBar(root,8,2,20,0)
+    return { root=root, pulse=function(pl) dot.BackgroundTransparency = 0.1 + pl*0.3 end }
+end
+local function BuildCross(p)
+    local root = NewF(p)
+    NewBar(root,4,4,0,0)
+    local b = { NewBar(root,2,16,0,-14), NewBar(root,2,16,0,14),
+                NewBar(root,16,2,-14,0), NewBar(root,16,2,14,0) }
+    return { root=root, pulse=function(pl) for _,x in ipairs(b) do x.BackgroundTransparency = pl*0.3 end end }
+end
+local function BuildDiamond(p)
+    local root = NewF(p)
+    local sp = NewSpinner(root)
+    local o = NewF(sp, UDim2.new(0,70,0,70), UDim2.new(0.5,0,0.5,0), Vector2.new(0.5,0.5))
+    o.Rotation = 45
+    Instance.new("UICorner", o).CornerRadius = UDim.new(0,6)
+    local os = Instance.new("UIStroke", o); os.Thickness = 3; os.Color = RET_COLOR
+    local i = NewF(sp, UDim2.new(0,46,0,46), UDim2.new(0.5,0,0.5,0), Vector2.new(0.5,0.5))
+    i.Rotation = 45
+    Instance.new("UICorner", i).CornerRadius = UDim.new(0,4)
+    local is_ = Instance.new("UIStroke", i); is_.Thickness = 1; is_.Color = RET_ACCENT
+    return { root=root, pulse=function(pl) os.Transparency = 0.05 + pl*0.15 end,
+             spin=function(a) sp.Rotation = a end }
+end
+local function BuildTriangle(p)
+    local root = NewF(p)
+    local sp = NewSpinner(root)
+    local ticks = {}
+    for i = 1, 3 do
+        local a = (i-1)*120
+        local r = math.rad(a)
+        ticks[i] = NewBar(sp, 5, 20, math.sin(r)*50, -math.cos(r)*50, a)
+    end
+    NewBar(sp, 4, 4, 0, 0)
+    return { root=root, pulse=function(pl) for _,t in ipairs(ticks) do t.BackgroundTransparency = pl*0.3 end end,
+             spin=function(a) sp.Rotation = a end }
+end
+local function BuildHexagon(p)
+    local root = NewF(p)
+    local sp = NewSpinner(root)
+    local ticks = {}
+    for i = 1, 6 do
+        local a = (i-1)*60
+        local r = math.rad(a)
+        ticks[i] = NewBar(sp, 4, 14, math.sin(r)*48, -math.cos(r)*48, a)
+    end
+    return { root=root, pulse=function(pl) for _,t in ipairs(ticks) do t.BackgroundTransparency = pl*0.3 end end,
+             spin=function(a) sp.Rotation = a end }
+end
+local function BuildSquare(p)
+    local root = NewF(p)
+    local o = NewF(root, UDim2.new(0,80,0,80), UDim2.new(0.5,0,0.5,0), Vector2.new(0.5,0.5))
+    Instance.new("UICorner", o).CornerRadius = UDim.new(0,4)
+    local os = Instance.new("UIStroke", o); os.Thickness = 3; os.Color = RET_COLOR
+    local i = NewF(root, UDim2.new(0,60,0,60), UDim2.new(0.5,0,0.5,0), Vector2.new(0.5,0.5))
+    Instance.new("UICorner", i).CornerRadius = UDim.new(0,3)
+    local is_ = Instance.new("UIStroke", i); is_.Thickness = 1; is_.Color = RET_ACCENT
+    NewBar(root, 4, 4, 0, 0)
+    return { root=root, pulse=function(pl)
+        os.Transparency = 0.05 + pl*0.15
+        is_.Transparency = 0.5 + pl*0.3
+    end }
+end
+local function BuildChevron(p)
+    local root = NewF(p)
+    local l = NewBar(root,4,18,-6,-6,-30)
+    local r = NewBar(root,4,18, 6,-6, 30)
+    NewBar(root,4,4,0,14)
+    return { root=root, pulse=function(pl)
+        l.BackgroundTransparency = pl*0.3
+        r.BackgroundTransparency = pl*0.3
+    end }
+end
+local function BuildBracket(p)
+    local root = NewF(p)
+    local d, len, th = 32, 12, 3
+    local bars = {
+        NewBar(root,th,len,-d,-d+len/2-2), NewBar(root,len,th,-d+len/2-2,-d),
+        NewBar(root,th,len,d,-d+len/2-2),  NewBar(root,len,th,d-len/2+2,-d),
+        NewBar(root,th,len,-d,d-len/2+2),  NewBar(root,len,th,-d+len/2-2,d),
+        NewBar(root,th,len,d,d-len/2+2),   NewBar(root,len,th,d-len/2+2,d),
+    }
+    NewBar(root,4,4,0,0)
+    return { root=root, pulse=function(pl) for _,b in ipairs(bars) do b.BackgroundTransparency = pl*0.25 end end }
+end
+local function BuildStar(p)
+    local root = NewF(p)
+    local sp = NewSpinner(root)
+    local ticks = {}
+    for i = 1, 5 do
+        local a = (i-1)*72
+        local r = math.rad(a)
+        ticks[i] = NewBar(sp, 4, 16, math.sin(r)*45, -math.cos(r)*45, a)
+    end
+    NewBar(sp, 5, 5, 0, 0)
+    return { root=root, pulse=function(pl) for _,t in ipairs(ticks) do t.BackgroundTransparency = pl*0.3 end end,
+             spin=function(a) sp.Rotation = -a*0.6 end }
+end
+local function BuildSpinner(p)
+    local root = NewF(p)
+    local sp = NewSpinner(root)
+    local lengths = { 18, 12, 18, 12 }
+    for i = 1, 4 do
+        local a = (i-1)*90
+        local r = math.rad(a)
+        local rad = 40 + lengths[i]
+        NewBar(sp, 3, lengths[i], math.sin(r)*rad, -math.cos(r)*rad, a)
+    end
+    NewBar(sp, 4, 4, 0, 0)
+    return { root=root, pulse=function() end, spin=function(a) sp.Rotation = a*2 end }
+end
+local function BuildTarget(p)
+    local root = NewF(p)
+    local _, r1 = NewRing(root, 90, 2)
+    local _, r2 = NewRing(root, 60, 2); r2.Color = RET_ACCENT
+    local _, r3 = NewRing(root, 30, 2)
+    NewBar(root, 6, 6, 0, 0)
+    return { root=root, pulse=function(pl)
+        r1.Transparency = 0.3 + pl*0.2
+        r2.Transparency = 0.3 + pl*0.2
+        r3.Transparency = 0.3 + pl*0.2
+    end }
+end
+
+local reticles = {
+    BuildSouls(ReticleGui), BuildDot(ReticleGui), BuildCross(ReticleGui),
+    BuildDiamond(ReticleGui), BuildTriangle(ReticleGui), BuildHexagon(ReticleGui),
+    BuildSquare(ReticleGui), BuildChevron(ReticleGui), BuildBracket(ReticleGui),
+    BuildStar(ReticleGui), BuildSpinner(ReticleGui), BuildTarget(ReticleGui),
+}
+for i, r in ipairs(reticles) do r.root.Visible = (i == 1) end
+
+local Highlight = Instance.new("Highlight")
+Highlight.FillColor = HL_FILL
+Highlight.OutlineColor = HL_OUTLINE
+Highlight.FillTransparency = 0.75
+Highlight.OutlineTransparency = 0.4
+Highlight.Enabled = false
+Highlight.Parent = ScreenGui
+
+-- ============================================================
+-- ============ HELPERS DE ALVO ===============================
+-- ============================================================
+local function GetRoot(model)
+    if not model or not model:IsA("Model") then return nil end
+    local h = model:FindFirstChildOfClass("Humanoid")
+    local r = model:FindFirstChild("HumanoidRootPart")
+    if not h or not r or h.Health <= 0 then return nil end
+    return r
+end
+local function GetAim(model)
+    local hd = model:FindFirstChild("Head")
+    if hd then return hd.Position end
+    local r = GetRoot(model)
+    return r and r.Position or nil
+end
+local function FindNearest()
+    local char = Player.Character
+    local myRoot = char and char:FindFirstChild("HumanoidRootPart")
+    if not myRoot then return nil end
+    local nearest, shortest = nil, MAX_DISTANCE
+    local function check(m)
+        local root = GetRoot(m)
+        if not root then return end
+        local d = (myRoot.Position - root.Position).Magnitude
+        if d < shortest then shortest = d; nearest = m end
+    end
+    for _, p in ipairs(Players:GetPlayers()) do
+        if p ~= Player and p.Character then check(p.Character) end
+    end
+    for _, d in ipairs(workspace:GetDescendants()) do
+        if d:IsA("Model") and d ~= Player.Character
+           and not Players:GetPlayerFromCharacter(d) then check(d) end
+    end
+    return nearest
+end
+local function SetTarget(model)
+    Target = model
+    Highlight.Adornee = model
+    Highlight.Enabled = model ~= nil
+    if model then
+        ReticleGui.Adornee = model:FindFirstChild("Head") or model:FindFirstChild("HumanoidRootPart")
+        ReticleGui.Enabled = true
+    else
+        ReticleGui.Adornee = nil
+        ReticleGui.Enabled = false
+    end
+end
+local function SetTransparency(a)
+    local c = Player.Character
+    if not c then return end
+    for _, p in ipairs(c:GetDescendants()) do
+        if p:IsA("BasePart") then p.LocalTransparencyModifier = a end
     end
 end
 
-local function RemoveParticles(obj)
-
-    if obj:IsA("ParticleEmitter")
-        or obj:IsA("Trail")
-        or obj:IsA("Beam")
-        or obj:IsA("Fire")
-        or obj:IsA("Smoke")
-        or obj:IsA("Sparkles") then
-
-        Save(obj, "Enabled")
-        obj.Enabled = false
+-- ============================================================
+-- ============ LOCK ON / ZOOM ================================
+-- ============================================================
+local function UpdateEnableBtn()
+    if LockOn then
+        EnableLbl.Text = "LOCK: ON"
+        EnableBtn.BackgroundColor3 = W95_GREEN
+        EnableLbl.TextColor3 = W95_WHITE
+    else
+        EnableLbl.Text = "LOCK: OFF"
+        EnableBtn.BackgroundColor3 = W95_BG
+        EnableLbl.TextColor3 = W95_TEXT
     end
 end
 
-local function RemoveLights(obj)
-
-    if obj:IsA("PointLight")
-        or obj:IsA("SpotLight")
-        or obj:IsA("SurfaceLight") then
-
-        Save(obj, "Enabled")
-        obj.Enabled = false
-    end
-end
-
-local function LowMaterial(obj)
-
-    if obj:IsA("BasePart") then
-        Save(obj, "Material")
-        obj.Material = Enum.Material.SmoothPlastic
-    end
-end
-
-local function DisableLighting()
-
-    Save(Lighting, "GlobalShadows")
-    Lighting.GlobalShadows = false
-
-    Save(Lighting, "FogStart")
-    Save(Lighting, "FogEnd")
-
-    Lighting.FogStart = 1000000
-    Lighting.FogEnd = 1000000
-end
-
-local function DisableEffects()
-
-    for _, obj in ipairs(Lighting:GetChildren()) do
-
-        if obj:IsA("PostEffect") then
-            Save(obj, "Enabled")
-            obj.Enabled = false
-
-        elseif obj:IsA("Atmosphere") then
-            Save(obj, "Density")
-            obj.Density = 0
-        end
-    end
-end
-
-local function DisableWater()
-
-    Save(Terrain, "WaterWaveSize")
-    Save(Terrain, "WaterWaveSpeed")
-    Save(Terrain, "WaterReflectance")
-    Save(Terrain, "WaterTransparency")
-
-    Terrain.WaterWaveSize = 0
-    Terrain.WaterWaveSpeed = 0
-    Terrain.WaterReflectance = 0
-    Terrain.WaterTransparency = 1
-end
-
-local function MegaBoost()
-
-    DisableLighting()
-    DisableEffects()
-    DisableWater()
-
-    for _, obj in ipairs(workspace:GetDescendants()) do
-        RemoveTextures(obj)
-        RemoveParticles(obj)
-        RemoveLights(obj)
-        LowMaterial(obj)
-    end
-end
-
-local function RestoreGraphics()
-
-    for obj, properties in pairs(Saved) do
-
-        if obj and obj.Parent then
-
-            for property, value in pairs(properties) do
-
-                pcall(function()
-                    obj[property] = value
-                end)
-
-            end
-        end
-    end
-
-    Saved = {}
-end
-
-workspace.DescendantAdded:Connect(function(obj)
-
-    if not Config.MegaBoost then
-        return
-    end
-
-    task.defer(function()
-
-        if not obj or not obj.Parent then
+local function ToggleLockOn()
+    if not LockOn then
+        local t = FindNearest()
+        if not t then
+            warn("[Ventis] Nenhum alvo num raio de " .. MAX_DISTANCE)
             return
         end
-
-        RemoveTextures(obj)
-        RemoveParticles(obj)
-        RemoveLights(obj)
-        LowMaterial(obj)
-
-    end)
-
-end)
-
---==============================================================
--- GUI
---==============================================================
-
-local Gui = Instance.new("ScreenGui")
-Gui.Name = "VentisHubV11"
-Gui.ResetOnSpawn = false
-Gui.IgnoreGuiInset = true
-Gui.DisplayOrder = 10
-Gui.Parent = PlayerGui
-
---==============================================================
--- FLOATING BUTTON
---==============================================================
-
-local Floating = Instance.new("TextButton")
-
-Floating.Size = UDim2.fromOffset(50,50)
-Floating.Position = UDim2.new(0,15,0.5,-25)
-
-Floating.BackgroundColor3 = Color3.fromRGB(10,10,13)
-Floating.BorderSizePixel = 0
-
-Floating.Text = "V"
-Floating.TextColor3 = Color3.fromRGB(255,255,255)
-Floating.TextSize = 23
-Floating.Font = Enum.Font.GothamBold
-
-Floating.Parent = Gui
-
-local FloatCorner = Instance.new("UICorner")
-FloatCorner.CornerRadius = UDim.new(1,0)
-FloatCorner.Parent = Floating
-
-local FloatStroke = Instance.new("UIStroke")
-FloatStroke.Color = Color3.fromRGB(255,45,45)
-FloatStroke.Thickness = 2
-FloatStroke.Parent = Floating
-
---==============================================================
--- MAIN PANEL
---==============================================================
-
-local Main = Instance.new("Frame")
-
-Main.Size = UDim2.fromOffset(330,430)
-Main.Position = UDim2.new(0.5,-165,0.5,-215)
-
-Main.BackgroundColor3 = Color3.fromRGB(8,8,11)
-Main.BorderSizePixel = 0
-
-Main.Parent = Gui
-
-local MainCorner = Instance.new("UICorner")
-MainCorner.CornerRadius = UDim.new(0,16)
-MainCorner.Parent = Main
-
-local MainStroke = Instance.new("UIStroke")
-MainStroke.Color = Color3.fromRGB(48,48,55)
-MainStroke.Parent = Main
-
---==============================================================
--- HEADER
---==============================================================
-
-local Header = Instance.new("Frame")
-
-Header.Size = UDim2.new(1,0,0,65)
-Header.BackgroundTransparency = 1
-Header.Parent = Main
-
-local Title = Instance.new("TextLabel")
-
-Title.Size = UDim2.new(1,-60,0,35)
-Title.Position = UDim2.fromOffset(16,5)
-
-Title.BackgroundTransparency = 1
-Title.Text = "VENTIS HUB"
-
-Title.TextColor3 = Color3.fromRGB(255,255,255)
-Title.TextSize = 21
-Title.Font = Enum.Font.GothamBold
-
-Title.TextXAlignment = Enum.TextXAlignment.Left
-Title.Parent = Header
-
-local Subtitle = Instance.new("TextLabel")
-
-Subtitle.Size = UDim2.new(1,-60,0,18)
-Subtitle.Position = UDim2.fromOffset(17,38)
-
-Subtitle.BackgroundTransparency = 1
-Subtitle.Text = "V11 • AIM + MEGA BOOST"
-
-Subtitle.TextColor3 = Color3.fromRGB(120,120,130)
-Subtitle.TextSize = 9
-Subtitle.Font = Enum.Font.GothamMedium
-
-Subtitle.TextXAlignment = Enum.TextXAlignment.Left
-Subtitle.Parent = Header
-
-local Close = Instance.new("TextButton")
-
-Close.Size = UDim2.fromOffset(34,34)
-Close.Position = UDim2.new(1,-45,0,12)
-
-Close.BackgroundColor3 = Color3.fromRGB(30,30,36)
-Close.BorderSizePixel = 0
-
-Close.Text = "×"
-Close.TextColor3 = Color3.fromRGB(230,230,235)
-Close.TextSize = 22
-Close.Font = Enum.Font.GothamBold
-
-Close.Parent = Header
-
-local CloseCorner = Instance.new("UICorner")
-CloseCorner.CornerRadius = UDim.new(0,9)
-CloseCorner.Parent = Close
-
---==============================================================
--- FPS STATUS
---==============================================================
-
-local FPS = Instance.new("TextLabel")
-
-FPS.Size = UDim2.fromOffset(90,26)
-FPS.Position = UDim2.new(1,-105,0,68)
-
-FPS.BackgroundColor3 = Color3.fromRGB(20,20,25)
-FPS.BorderSizePixel = 0
-
-FPS.Text = "FPS: --"
-FPS.TextColor3 = Color3.fromRGB(100,255,140)
-FPS.TextSize = 12
-FPS.Font = Enum.Font.GothamBold
-
-FPS.Parent = Main
-
-local FPSCorner = Instance.new("UICorner")
-FPSCorner.CornerRadius = UDim.new(0,8)
-FPSCorner.Parent = FPS
-
---==============================================================
--- TAB BAR
---==============================================================
-
-local TabBar = Instance.new("Frame")
-
-TabBar.Size = UDim2.new(1,-20,0,42)
-TabBar.Position = UDim2.fromOffset(10,100)
-
-TabBar.BackgroundTransparency = 1
-TabBar.Parent = Main
-
-local TabLayout = Instance.new("UIGridLayout")
-
-TabLayout.CellSize = UDim2.new(0.25,-4,1,0)
-TabLayout.CellPadding = UDim2.fromOffset(5,0)
-
-TabLayout.Parent = TabBar
-
---==============================================================
--- CONTENT
---==============================================================
-
-local Content = Instance.new("ScrollingFrame")
-
-Content.Size = UDim2.new(1,-20,1,-155)
-Content.Position = UDim2.fromOffset(10,150)
-
-Content.BackgroundTransparency = 1
-Content.BorderSizePixel = 0
-
-Content.ScrollBarThickness = 3
-Content.AutomaticCanvasSize = Enum.AutomaticSize.Y
-
-Content.Parent = Main
-
-local ContentLayout = Instance.new("UIListLayout")
-
-ContentLayout.Padding = UDim.new(0,7)
-ContentLayout.SortOrder = Enum.SortOrder.LayoutOrder
-
-ContentLayout.Parent = Content
-
---==============================================================
--- HELPERS
---==============================================================
-
-local function ClearContent()
-
-    for _, child in ipairs(Content:GetChildren()) do
-
-        if child:IsA("GuiObject") then
-            child:Destroy()
-        end
-
-    end
-end
-
-local function Button(text, callback)
-
-    local B = Instance.new("TextButton")
-
-    B.Size = UDim2.new(1,-3,0,40)
-
-    B.BackgroundColor3 = Color3.fromRGB(28,28,34)
-    B.BorderSizePixel = 0
-
-    B.Text = text
-    B.TextColor3 = Color3.fromRGB(235,235,240)
-    B.TextSize = 13
-    B.Font = Enum.Font.GothamMedium
-
-    B.AutoButtonColor = false
-    B.Parent = Content
-
-    local Corner = Instance.new("UICorner")
-    Corner.CornerRadius = UDim.new(0,9)
-    Corner.Parent = B
-
-    B.MouseEnter:Connect(function()
-        B.BackgroundColor3 = Color3.fromRGB(43,43,50)
-    end)
-
-    B.MouseLeave:Connect(function()
-        B.BackgroundColor3 = Color3.fromRGB(28,28,34)
-    end)
-
-    B.MouseButton1Click:Connect(callback)
-
-    return B
-end
-
-local function Toggle(text, state, callback)
-
-    local B
-
-    local function Update()
-
-        B.Text =
-            text ..
-            "   [" ..
-            (state and "ON" or "OFF") ..
-            "]"
-
-        B.TextColor3 =
-            state
-            and Color3.fromRGB(255,75,75)
-            or Color3.fromRGB(235,235,240)
-
-    end
-
-    B = Button("",function()
-
-        state = not state
-
-        callback(state)
-
-        Update()
-
-    end)
-
-    Update()
-
-    return B
-end
-
---==============================================================
--- FOV
---==============================================================
-
-local FOVCircle = Instance.new("Frame")
-
-FOVCircle.AnchorPoint = Vector2.new(0.5,0.5)
-FOVCircle.Position = UDim2.fromScale(0.5,0.5)
-
-FOVCircle.Size =
-    UDim2.fromOffset(
-        Config.FOV*2,
-        Config.FOV*2
-    )
-
-FOVCircle.BackgroundTransparency = 1
-FOVCircle.Visible = false
-
-FOVCircle.Parent = Gui
-
-local FOVCorner = Instance.new("UICorner")
-FOVCorner.CornerRadius = UDim.new(1,0)
-FOVCorner.Parent = FOVCircle
-
-local FOVStroke = Instance.new("UIStroke")
-FOVStroke.Color = Color3.fromRGB(255,40,40)
-FOVStroke.Thickness = 2
-FOVStroke.Parent = FOVCircle
-
---==============================================================
--- AIM TAB
---==============================================================
-
-local function ShowAim()
-
-    ClearContent()
-
-    Toggle(
-        "🎯 Aim Assist",
-        Config.AimAssist,
-        function(value)
-
-            Config.AimAssist = value
-
-            FOVCircle.Visible =
-                value and Config.FOVEnabled
-
-        end
-    )
-
-    Button(
-        "⭕ FOV  •  "..Config.FOV,
-        function()
-
-            Config.FOV += 10
-
-            if Config.FOV > 200 then
-                Config.FOV = 30
-            end
-
-            FOVCircle.Size =
-                UDim2.fromOffset(
-                    Config.FOV*2,
-                    Config.FOV*2
-                )
-
-            ShowAim()
-
-        end
-    )
-
-    Toggle(
-        "⭕ FOV Circle",
-        Config.FOVEnabled,
-        function(value)
-
-            Config.FOVEnabled = value
-
-            FOVCircle.Visible =
-                value and Config.AimAssist
-
-        end
-    )
-
-    Button(
-        "🎯 Aim Strength  •  "..math.floor(Config.AimStrength*100).."%",
-        function()
-
-            Config.AimStrength += 0.1
-
-            if Config.AimStrength > 1 then
-                Config.AimStrength = 0.1
-            end
-
-            ShowAim()
-
-        end
-    )
-
-    Toggle(
-        "🧱 Wall Check",
-        Config.WallCheck,
-        function(value)
-            Config.WallCheck = value
-        end
-    )
-
-    Toggle(
-        "❤️ Alive Check",
-        Config.AliveCheck,
-        function(value)
-            Config.AliveCheck = value
-        end
-    )
-end
-
---==============================================================
--- VISUAL TAB
---==============================================================
-
-local function ShowVisual()
-
-    ClearContent()
-
-    Toggle(
-        "👁 ESP",
-        Config.ESP,
-        function(value)
-            Config.ESP = value
-        end
-    )
-
-    Toggle(
-        "🧱 Wall Highlight",
-        Config.WallHighlight,
-        function(value)
-            Config.WallHighlight = value
-        end
-    )
-
-    Toggle(
-        "📍 Tracers",
-        Config.Tracers,
-        function(value)
-            Config.Tracers = value
-        end
-    )
-
-    Toggle(
-        "📊 FPS Counter",
-        Config.FPSCounter,
-        function(value)
-
-            Config.FPSCounter = value
-            FPS.Visible = value
-
-        end
-    )
-end
-
---==============================================================
--- FPS TAB
---==============================================================
-
-local function ShowFPS()
-
-    ClearContent()
-
-    local MegaButton
-
-    MegaButton = Button(
-        "🚀 MEGA BOOST   [ "
-        ..(Config.MegaBoost and "ON" or "OFF")
-        .." ]",
-
-        function()
-
-            Config.MegaBoost =
-                not Config.MegaBoost
-
-            if Config.MegaBoost then
-
-                MegaBoost()
-
-            else
-
-                RestoreGraphics()
-
-            end
-
-            ShowFPS()
-
-        end
-    )
-
-    MegaButton.TextColor3 =
-        Config.MegaBoost
-        and Color3.fromRGB(255,75,75)
-        or Color3.fromRGB(235,235,240)
-
-    Button(
-        "🔄 RESTAURAR GRÁFICOS",
-        function()
-
-            Config.MegaBoost = false
-
-            RestoreGraphics()
-
-            ShowFPS()
-
-        end
-    )
-
-    Button(
-        "ℹ️ MEGA BOOST",
-        function()
-            print(
-                "Mega Boost: texturas, partículas, luzes, sombras, fog, efeitos, água e materiais."
-            )
-        end
-    )
-end
-
---==============================================================
--- MOVEMENT TAB
---==============================================================
-
-local function ShowMovement()
-
-    ClearContent()
-
-    Toggle(
-        "🏃 WalkSpeed",
-        Config.WalkSpeed,
-        function(value)
-            Config.WalkSpeed = value
-        end
-    )
-
-    Button(
-        "🏃 Speed  •  "..Config.Speed,
-        function()
-
-            Config.Speed += 10
-
-            if Config.Speed > 100 then
-                Config.Speed = 16
-            end
-
-            ShowMovement()
-
-        end
-    )
-
-    Toggle(
-        "🦘 JumpPower",
-        Config.JumpPower,
-        function(value)
-            Config.JumpPower = value
-        end
-    )
-
-    Button(
-        "🦘 Jump  •  "..Config.Jump,
-        function()
-
-            Config.Jump += 25
-
-            if Config.Jump > 150 then
-                Config.Jump = 25
-            end
-
-            ShowMovement()
-
-        end
-    )
-end
-
---==============================================================
--- TABS
---==============================================================
-
-local function CreateTab(text, callback)
-
-    local B = Instance.new("TextButton")
-
-    B.BackgroundColor3 =
-        Color3.fromRGB(27,27,33)
-
-    B.BorderSizePixel = 0
-
-    B.Text = text
-    B.TextColor3 =
-        Color3.fromRGB(220,220,225)
-
-    B.TextSize = 11
-    B.Font = Enum.Font.GothamBold
-
-    B.AutoButtonColor = false
-    B.Parent = TabBar
-
-    local Corner = Instance.new("UICorner")
-    Corner.CornerRadius = UDim.new(0,8)
-    Corner.Parent = B
-
-    B.MouseButton1Click:Connect(function()
-
-        for _, tab in ipairs(TabBar:GetChildren()) do
-
-            if tab:IsA("TextButton") then
-                tab.BackgroundColor3 =
-                    Color3.fromRGB(27,27,33)
-            end
-
-        end
-
-        B.BackgroundColor3 =
-            Color3.fromRGB(65,35,38)
-
-        callback()
-
-    end)
-
-    return B
-end
-
-local AimTab =
-    CreateTab("🎯 AIM",ShowAim)
-
-local VisualTab =
-    CreateTab("👁 VISUAL",ShowVisual)
-
-local FPSTab =
-    CreateTab("⚡ FPS",ShowFPS)
-
-local MovementTab =
-    CreateTab("🏃 MOVE",ShowMovement)
-
---==============================================================
--- DEFAULT TAB
---==============================================================
-
-AimTab.BackgroundColor3 =
-    Color3.fromRGB(65,35,38)
-
-ShowAim()
-
---==============================================================
--- AIM SYSTEM
---==============================================================
-
-local LockedTarget = nil
-
-local function IsAlive(character)
-
-    if not character then
-        return false
-    end
-
-    local Humanoid =
-        character:FindFirstChildOfClass("Humanoid")
-
-    return Humanoid
-        and Humanoid.Health > 0
-end
-
-local function CanSee(part)
-
-    if not Config.WallCheck then
-        return true
-    end
-
-    local Camera =
-        workspace.CurrentCamera
-
-    if not Camera or not part then
-        return false
-    end
-
-    local Origin =
-        Camera.CFrame.Position
-
-    local Direction =
-        part.Position-Origin
-
-    local Params =
-        RaycastParams.new()
-
-    Params.FilterType =
-        Enum.RaycastFilterType.Exclude
-
-    Params.FilterDescendantsInstances = {
-        LocalPlayer.Character
-    }
-
-    local Result =
-        workspace:Raycast(
-            Origin,
-            Direction,
-            Params
-        )
-
-    if not Result then
-        return true
-    end
-
-    return Result.Instance:IsDescendantOf(
-        part.Parent
-    )
-end
-
-local function ValidTarget(part)
-
-    if not part or not part.Parent then
-        return false
-    end
-
-    local Character =
-        part.Parent
-
-    if Config.AliveCheck
-        and not IsAlive(Character) then
-        return false
-    end
-
-    local Camera =
-        workspace.CurrentCamera
-
-    if not Camera then
-        return false
-    end
-
-    local Position, Visible =
-        Camera:WorldToViewportPoint(
-            part.Position
-        )
-
-    if not Visible or Position.Z <= 0 then
-        return false
-    end
-
-    local Center =
-        Vector2.new(
-            Camera.ViewportSize.X/2,
-            Camera.ViewportSize.Y/2
-        )
-
-    local Distance =
-        (
-            Vector2.new(
-                Position.X,
-                Position.Y
-            )-Center
-        ).Magnitude
-
-    if Distance > Config.FOV then
-        return false
-    end
-
-    return CanSee(part)
-end
-
-local function GetTarget()
-
-    local Camera =
-        workspace.CurrentCamera
-
-    if not Camera then
-        return nil
-    end
-
-    local Center =
-        Vector2.new(
-            Camera.ViewportSize.X/2,
-            Camera.ViewportSize.Y/2
-        )
-
-    local Closest
-    local ClosestDistance =
-        Config.FOV
-
-    for _, p in ipairs(Players:GetPlayers()) do
-
-        if p ~= LocalPlayer then
-
-            local Character =
-                p.Character
-
-            if IsAlive(Character) then
-
-                local Head =
-                    Character:FindFirstChild("Head")
-
-                if Head then
-
-                    local Position, Visible =
-                        Camera:WorldToViewportPoint(
-                            Head.Position
-                        )
-
-                    if Visible and Position.Z > 0 then
-
-                        local Distance =
-                            (
-                                Vector2.new(
-                                    Position.X,
-                                    Position.Y
-                                )-Center
-                            ).Magnitude
-
-                        if Distance <
-                            ClosestDistance
-                            and CanSee(Head) then
-
-                            Closest = Head
-                            ClosestDistance =
-                                Distance
-
-                        end
-                    end
-                end
-            end
-        end
-    end
-
-    return Closest
-end
-
-local function AimAt(Target)
-
-    if not ValidTarget(Target) then
-        return
-    end
-
-    local Camera =
-        workspace.CurrentCamera
-
-    local Desired =
-        CFrame.lookAt(
-            Camera.CFrame.Position,
-            Target.Position
-        )
-
-    Camera.CFrame =
-        Camera.CFrame:Lerp(
-            Desired,
-            math.clamp(
-                Config.AimStrength,
-                0.05,
-                1
-            )
-        )
-end
-
---==============================================================
--- SIMPLE VISUAL SYSTEM
---==============================================================
-
-local ESPObjects = {}
-
-local function RemoveESP(player)
-
-    local Data =
-        ESPObjects[player]
-
-    if not Data then
-        return
-    end
-
-    if Data.Highlight then
-        Data.Highlight:Destroy()
-    end
-
-    if Data.Billboard then
-        Data.Billboard:Destroy()
-    end
-
-    if Data.Tracer then
-        Data.Tracer:Destroy()
-    end
-
-    ESPObjects[player] = nil
-end
-
-local function CreateESP(player)
-
-    if player == LocalPlayer then
-        return
-    end
-
-    RemoveESP(player)
-
-    local Character =
-        player.Character
-
-    if not Character then
-        return
-    end
-
-    local Root =
-        Character:FindFirstChild(
-            "HumanoidRootPart"
-        )
-
-    if not Root then
-        return
-    end
-
-    local Data = {}
-    ESPObjects[player] = Data
-
-    local Highlight =
-        Instance.new("Highlight")
-
-    Highlight.Adornee = Character
-    Highlight.FillColor =
-        Color3.fromRGB(255,45,45)
-
-    Highlight.OutlineColor =
-        Color3.fromRGB(255,255,255)
-
-    Highlight.FillTransparency = 0.75
-    Highlight.DepthMode =
-        Enum.HighlightDepthMode.AlwaysOnTop
-
-    Highlight.Enabled =
-        Config.WallHighlight
-
-    Highlight.Parent = Character
-
-    Data.Highlight = Highlight
-
-    local Billboard =
-        Instance.new("BillboardGui")
-
-    Billboard.Adornee = Root
-    Billboard.Size =
-        UDim2.fromOffset(180,30)
-
-    Billboard.StudsOffset =
-        Vector3.new(0,3,0)
-
-    Billboard.AlwaysOnTop = true
-    Billboard.Enabled = Config.ESP
-
-    Billboard.Parent = Root
-
-    local Label =
-        Instance.new("TextLabel")
-
-    Label.Size =
-        UDim2.fromScale(1,1)
-
-    Label.BackgroundTransparency = 1
-    Label.TextColor3 =
-        Color3.fromRGB(255,70,70)
-
-    Label.TextStrokeTransparency = 0
-    Label.TextSize = 13
-    Label.Font = Enum.Font.GothamBold
-
-    Label.Parent = Billboard
-
-    Data.Billboard = Billboard
-    Data.Label = Label
-
-    local Tracer =
-        Instance.new("Frame")
-
-    Tracer.BackgroundColor3 =
-        Color3.fromRGB(255,45,45)
-
-    Tracer.BorderSizePixel = 0
-    Tracer.AnchorPoint =
-        Vector2.new(0.5,0.5)
-
-    Tracer.Size =
-        UDim2.fromOffset(0,2)
-
-    Tracer.Visible = false
-    Tracer.Parent = Gui
-
-    Data.Tracer = Tracer
-end
-
-for _, p in ipairs(Players:GetPlayers()) do
-
-    if p ~= LocalPlayer then
-
-        if p.Character then
-            task.defer(CreateESP,p)
-        end
-
-        p.CharacterAdded:Connect(function()
-            task.wait(0.2)
-            CreateESP(p)
-        end)
-
-    end
-end
-
-Players.PlayerAdded:Connect(function(p)
-
-    p.CharacterAdded:Connect(function()
-        task.wait(0.2)
-        CreateESP(p)
-    end)
-
-end)
-
-Players.PlayerRemoving:Connect(RemoveESP)
-
---==============================================================
--- MAIN LOOP
---==============================================================
-
-local Frames = 0
-local LastFPS = os.clock()
-
-RunService.RenderStepped:Connect(function()
-
-    -- FPS
-    Frames += 1
-
-    local Now = os.clock()
-
-    if Now-LastFPS >= 1 then
-
-        FPS.Text =
-            "FPS: "..Frames
-
-        Frames = 0
-        LastFPS = Now
-
-    end
-
-    -- MOVEMENT
-    local Character =
-        LocalPlayer.Character
-
-    local Humanoid =
-        Character and
-        Character:FindFirstChildOfClass(
-            "Humanoid"
-        )
-
-    if Humanoid then
-
-        if Config.WalkSpeed then
-            Humanoid.WalkSpeed =
-                Config.Speed
-        end
-
-        if Config.JumpPower then
-            Humanoid.JumpPower =
-                Config.Jump
-        end
-
-    end
-
-    -- VISUAL
-    local Camera =
-        workspace.CurrentCamera
-
-    for player,data in pairs(ESPObjects) do
-
-        local Character =
-            player.Character
-
-        local Humanoid =
-            Character and
-            Character:FindFirstChildOfClass(
-                "Humanoid"
-            )
-
-        local Root =
-            Character and
-            Character:FindFirstChild(
-                "HumanoidRootPart"
-            )
-
-        if Humanoid
-            and Root
-            and Humanoid.Health > 0 then
-
-            data.Highlight.Enabled =
-                Config.WallHighlight
-
-            data.Billboard.Enabled =
-                Config.ESP
-
-            local Distance =
-                (
-                    Camera.CFrame.Position
-                    -Root.Position
-                ).Magnitude
-
-            data.Label.Text =
-                player.Name ..
-                " • " ..
-                math.floor(Distance)
-
-            if Config.Tracers then
-
-                local Position, Visible =
-                    Camera:WorldToViewportPoint(
-                        Root.Position
-                    )
-
-                if Visible and Position.Z > 0 then
-
-                    local Viewport =
-                        Camera.ViewportSize
-
-                    local Start =
-                        Vector2.new(
-                            Viewport.X/2,
-                            Viewport.Y
-                        )
-
-                    local Finish =
-                        Vector2.new(
-                            Position.X,
-                            Position.Y
-                        )
-
-                    local Difference =
-                        Finish-Start
-
-                    local Length =
-                        Difference.Magnitude
-
-                    if Length > 1 then
-
-                        local Middle =
-                            (Start+Finish)/2
-
-                        data.Tracer.Position =
-                            UDim2.fromOffset(
-                                Middle.X,
-                                Middle.Y
-                            )
-
-                        data.Tracer.Size =
-                            UDim2.fromOffset(
-                                Length,
-                                2
-                            )
-
-                        data.Tracer.Rotation =
-                            math.deg(
-                                math.atan2(
-                                    Difference.Y,
-                                    Difference.X
-                                )
-                            )
-
-                        data.Tracer.Visible = true
-
-                    end
-
-                else
-                    data.Tracer.Visible = false
-                end
-
-            else
-                data.Tracer.Visible = false
-            end
-
-        else
-
-            data.Highlight.Enabled = false
-            data.Billboard.Enabled = false
-            data.Tracer.Visible = false
-
-        end
-    end
-
-    -- AIM
-    if Config.AimAssist then
-
-        FOVCircle.Visible =
-            Config.FOVEnabled
-
-        if LockedTarget
-            and not ValidTarget(
-                LockedTarget
-            ) then
-
-            LockedTarget = nil
-        end
-
-        if not LockedTarget then
-            LockedTarget = GetTarget()
-        end
-
-        if LockedTarget then
-            AimAt(LockedTarget)
-        end
-
+        LockOn = true
+        SetTarget(t)
+        Player.CameraMode            = Enum.CameraMode.Classic
+        Player.CameraMinZoomDistance = 0.5
+        Player.CameraMaxZoomDistance = 400
+        Camera.CameraType            = Enum.CameraType.Scriptable
+        BodyHidden = CameraDistance < 2.0
+        SetTransparency(BodyHidden and 1 or 0)
     else
-
-        LockedTarget = nil
-        FOVCircle.Visible = false
-
+        LockOn = false
+        SetTarget(nil)
+        Player.CameraMode            = Enum.CameraMode.Classic
+        Player.CameraMinZoomDistance = 0.5
+        Player.CameraMaxZoomDistance = 20
+        Camera.CameraType            = Enum.CameraType.Custom
+        SetTransparency(0)
+        BodyHidden = false
     end
+    UpdateEnableBtn()
+end
 
-end)
-
---==============================================================
--- OPEN / CLOSE
---==============================================================
-
-Floating.MouseButton1Click:Connect(function()
-    Main.Visible = not Main.Visible
-end)
-
-Close.MouseButton1Click:Connect(function()
-    Main.Visible = false
-end)
-
---==============================================================
--- DRAG
---==============================================================
-
-local Dragging = false
-local DragStart
-local StartPosition
-
-Header.InputBegan:Connect(function(input)
-
-    if input.UserInputType ==
-        Enum.UserInputType.MouseButton1
-        or input.UserInputType ==
-        Enum.UserInputType.Touch then
-
-        Dragging = true
-        DragStart = input.Position
-        StartPosition = Main.Position
-
+local function SetZoom(d)
+    CameraDistance = math.clamp(d, ZOOM_MIN, ZOOM_MAX)
+    RowZoomTxt.Text = string.format("ZOOM: %dm", math.floor(CameraDistance + 0.5))
+    local hide = CameraDistance < 2.0
+    if hide ~= BodyHidden then
+        BodyHidden = hide
+        SetTransparency(hide and 1 or 0)
     end
+end
+local function ChangeZoom(d) SetZoom(CameraDistance + d) end
 
+-- ============================================================
+-- ============ MIRA ==========================================
+-- ============================================================
+local function ApplyReticle(index)
+    currentReticle = index
+    for i, r in ipairs(reticles) do
+        r.root.Visible = (i == index)
+    end
+    RowMiraTxt.Text = "MIRA: " .. RETICLE_NAMES[index]
+end
+
+-- ============================================================
+-- ============ ABRIR / FECHAR ================================
+-- ============================================================
+local function SetIconColor(color)
+    for _, part in ipairs(IconParts) do
+        if part:IsA("Frame") then
+            part.BackgroundColor3 = color
+        end
+    end
+    CenterStroke.Color = color
+end
+
+local function OpenWindow()
+    Window.Visible = true
+    SetIconColor(ICON_COLOR)
+end
+local function CloseWindow()
+    Window.Visible = false
+    SetIconColor(Color3.fromRGB(150, 150, 160))
+end
+local function ToggleWindow()
+    if Window.Visible then CloseWindow() else OpenWindow() end
+end
+
+-- ============================================================
+-- ============ INPUT =========================================
+-- ============================================================
+Trigger.MouseButton1Click:Connect(ToggleWindow)
+CloseBtn.MouseButton1Click:Connect(CloseWindow)
+
+local dragActive, dragStart, winStart = false, nil, nil
+TitleBar.InputBegan:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.Touch
+    or input.UserInputType == Enum.UserInputType.MouseButton1 then
+        dragActive = true
+        dragStart  = Vector2.new(input.Position.X, input.Position.Y)
+        winStart   = Window.Position
+    end
 end)
-
+local function TryDrag(input)
+    if not dragActive or not Movable then return end
+    local cur = Vector2.new(input.Position.X, input.Position.Y)
+    local delta = cur - dragStart
+    if delta.Magnitude < DRAG_MIN then return end
+    Window.Position = UDim2.new(
+        winStart.X.Scale, winStart.X.Offset + delta.X,
+        winStart.Y.Scale, winStart.Y.Offset + delta.Y
+    )
+end
+UserInputService.TouchMoved:Connect(TryDrag)
 UserInputService.InputChanged:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.MouseMovement then TryDrag(input) end
+end)
+local function EndDrag() dragActive = false end
+UserInputService.TouchEnded:Connect(EndDrag)
+UserInputService.InputEnded:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.MouseButton1 then EndDrag() end
+end)
 
-    if not Dragging then
+EnableBtn.MouseButton1Click:Connect(ToggleLockOn)
+
+RowMiraHit.MouseButton1Click:Connect(function()
+    local n = currentReticle + 1
+    if n > #RETICLE_NAMES then n = 1 end
+    ApplyReticle(n)
+end)
+
+RowTravarHit.MouseButton1Click:Connect(function()
+    Movable = not Movable
+    RowTravarCheck.Visible = not Movable
+end)
+
+local zoomHold = false
+local function StartZoomHold(d)
+    ChangeZoom(d)
+    zoomHold = true
+    task.spawn(function()
+        while zoomHold do
+            task.wait(ZOOM_HOLD_TICK)
+            if zoomHold then ChangeZoom(d) end
+        end
+    end)
+end
+local function StopZoomHold() zoomHold = false end
+
+ZoomMinus.MouseButton1Down:Connect(function() StartZoomHold(-ZOOM_STEP) end)
+ZoomMinus.MouseButton1Up:Connect(StopZoomHold)
+ZoomMinus.MouseLeave:Connect(StopZoomHold)
+ZoomPlus.MouseButton1Down:Connect(function() StartZoomHold(ZOOM_STEP) end)
+ZoomPlus.MouseButton1Up:Connect(StopZoomHold)
+ZoomPlus.MouseLeave:Connect(StopZoomHold)
+UserInputService.InputEnded:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.Touch then StopZoomHold() end
+end)
+
+-- ============================================================
+-- ============ RESPAWN =======================================
+-- ============================================================
+Player.CharacterAdded:Connect(function()
+    if LockOn then
+        LockOn = false
+        SetTarget(nil)
+        Player.CameraMode = Enum.CameraMode.Classic
+        Camera.CameraType = Enum.CameraType.Custom
+        BodyHidden = false
+        UpdateEnableBtn()
+    end
+end)
+
+-- ============================================================
+-- ============ LOOP PRINCIPAL ================================
+-- ============================================================
+local rayParams = RaycastParams.new()
+rayParams.FilterType = Enum.RaycastFilterType.Exclude
+
+local pulseT = 0
+
+RunService.RenderStepped:Connect(function(dt)
+    pulseT = pulseT + dt * 2.5
+    local pulse = (math.sin(pulseT) + 1) * 0.5
+
+    local active = reticles[currentReticle]
+    if active then
+        if active.pulse then active.pulse(pulse) end
+        if active.spin then
+            reticleAngle = reticleAngle + dt * 60
+            active.spin(reticleAngle)
+        end
+    end
+
+    if not LockOn or not Target then return end
+    local char = Player.Character
+    if not char then return end
+
+    local head   = char:FindFirstChild("Head")
+    local myRoot = char:FindFirstChild("HumanoidRootPart")
+    local hum    = char:FindFirstChildOfClass("Humanoid")
+    local tRoot  = GetRoot(Target)
+    local aimPos = GetAim(Target)
+
+    if not (head and myRoot and hum and tRoot and aimPos) then
+        SetTarget(FindNearest())
+        if not Target then return end
+        tRoot  = GetRoot(Target)
+        aimPos = GetAim(Target)
+        if not (tRoot and aimPos) then return end
+    end
+
+    local dist = (myRoot.Position - tRoot.Position).Magnitude
+    if dist > MAX_DISTANCE then
+        SetTarget(nil)
         return
     end
 
-    if input.UserInputType ==
-        Enum.UserInputType.MouseMovement
-        or input.UserInputType ==
-        Enum.UserInputType.Touch then
-
-        local Delta =
-            input.Position-DragStart
-
-        Main.Position = UDim2.new(
-            StartPosition.X.Scale,
-            StartPosition.X.Offset+Delta.X,
-            StartPosition.Y.Scale,
-            StartPosition.Y.Offset+Delta.Y
-        )
-
+    hum.AutoRotate = false
+    local flatAim = Vector3.new(aimPos.X, myRoot.Position.Y, aimPos.Z)
+    if (flatAim - myRoot.Position).Magnitude > 0.05 then
+        myRoot.CFrame = CFrame.lookAt(myRoot.Position, flatAim)
     end
 
-end)
+    local scaleByDist = math.clamp(1 - (dist / MAX_DISTANCE) * 0.55, 0.45, 1)
+    local baseSize = 130 * scaleByDist
+    ReticleGui.Size = UDim2.new(0, baseSize, 0, baseSize)
 
-UserInputService.InputEnded:Connect(function(input)
-
-    if input.UserInputType ==
-        Enum.UserInputType.MouseButton1
-        or input.UserInputType ==
-        Enum.UserInputType.Touch then
-
-        Dragging = false
-
+    local desired
+    if CameraDistance < 1 then
+        desired = CFrame.lookAt(head.Position, aimPos)
+    else
+        local dir = myRoot.Position - tRoot.Position
+        dir = Vector3.new(dir.X, 0, dir.Z)
+        if dir.Magnitude < 0.1 then dir = Vector3.new(0, 0, 1) else dir = dir.Unit end
+        local offset = dir * CameraDistance + Vector3.new(0, TP_HEIGHT, 0)
+        local origin = head.Position
+        rayParams.FilterDescendantsInstances = { char, Target }
+        local hit = workspace:Raycast(origin, offset, rayParams)
+        local camPos = hit and (hit.Position + hit.Normal * 0.4) or (origin + offset)
+        desired = CFrame.lookAt(camPos, aimPos)
     end
 
+    Camera.CFrame = Camera.CFrame:Lerp(desired, math.clamp(dt * SMOOTH, 0, 1))
 end)
 
---==============================================================
--- RESPAWN
---==============================================================
-
-LocalPlayer.CharacterAdded:Connect(function()
-    LockedTarget = nil
-end)
-
---==============================================================
--- FINAL
---==============================================================
-
-print("==========================================")
-print("          VENTIS HUB V11")
-print("       AIM • VISUAL • FPS • MOVE")
-print("             MEGA BOOST")
-print("          by ventis321")
-print("==========================================")
+-- ============================================================
+-- ============ INIT ==========================================
+-- ============================================================
+ApplyReticle(1)
+SetZoom(8)
+UpdateEnableBtn()
+OpenWindow()
