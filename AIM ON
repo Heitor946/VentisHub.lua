@@ -1,11 +1,10 @@
 -- ============================================================
--- VENTIS HUB - LOCK ON (Mobile)
--- 20 temas de cor + 12 miras + zoom livre + menu retrátil
+-- VENTIS HUB - LOCK ON (Win95) | Bolinha retrô + janela independente
+-- Local: StarterPlayer > StarterPlayerScripts (LocalScript)
 -- ============================================================
 local Players          = game:GetService("Players")
 local RunService       = game:GetService("RunService")
 local UserInputService = game:GetService("UserInputService")
-local TweenService     = game:GetService("TweenService")
 
 local Player = Players.LocalPlayer
 local Camera = workspace.CurrentCamera
@@ -13,211 +12,242 @@ local Camera = workspace.CurrentCamera
 -- ===== CONFIG =====
 local MAX_DISTANCE   = 150
 local SMOOTH         = 15
-local DRAG_MIN       = 10
+local DRAG_MIN       = 6
 local TP_HEIGHT      = 1.5
 local ZOOM_MIN       = 0
 local ZOOM_MAX       = 40
 local ZOOM_STEP      = 1
 local ZOOM_HOLD_TICK = 0.08
 
--- ============================================================
--- ============ 20 TEMAS =====================================
--- ============================================================
--- Ordem: [nome, ballHi, ballMain, ballLo, accent, menuBg,
---         btnIdle, btnOn, txtIdle, txtOn, lockOn]
-local THEME_DATA = {
-    {"Amarelo",    255,240,130, 255,195,40,  170,120,15,  255,175,30,  28,24,8,    72,58,14,   255,195,40,  255,230,120, 40,30,0,     200,60,40},
-    {"Vermelho",   255,160,140, 225,60,50,   120,20,20,   255,90,70,   30,10,10,   80,25,25,   225,60,50,   255,190,180, 255,240,240, 90,20,20},
-    {"Laranja",    255,210,160, 255,130,40,  150,60,10,   255,150,60,  32,18,6,    90,45,12,   255,130,40,  255,215,170, 50,20,0,     180,60,30},
-    {"Azul",       150,220,255, 60,150,240,  20,70,140,   90,180,255,  10,22,40,   25,55,90,   60,150,240,  180,220,255, 240,250,255, 30,80,130},
-    {"Ciano",      170,255,255, 40,210,220,  10,110,120,  80,230,235,  8,28,30,    18,72,78,   40,210,220,  190,255,255, 240,255,255, 180,50,60},
-    {"Verde",      180,255,160, 80,210,90,   20,110,40,   110,230,120, 10,28,14,   30,75,35,   80,210,90,   200,255,200, 240,255,240, 140,50,30},
-    {"Menta",      190,255,220, 90,220,170,  20,120,90,   120,240,190, 8,26,22,    22,78,62,   90,220,170,  200,255,230, 240,255,250, 200,80,90},
-    {"Lima",       235,255,140, 180,230,40,  80,110,10,   210,245,70,  24,28,6,    60,75,12,   180,230,40,  240,255,160, 40,45,0,     200,60,40},
-    {"Roxo",       230,180,255, 180,80,240,  80,25,140,   210,120,255, 24,10,35,   60,30,90,   180,80,240,  230,200,255, 250,240,255, 120,30,90},
-    {"Lavanda",    230,215,255, 160,140,240, 70,60,140,   190,170,255, 20,18,38,   50,45,95,   160,140,240, 230,220,255, 245,240,255, 180,80,120},
-    {"Rosa",       255,200,230, 240,110,180, 130,30,90,   255,150,205, 32,12,24,   85,30,60,   240,110,180, 255,215,235, 255,240,250, 90,20,50},
-    {"Magenta",    255,180,255, 230,40,200,  120,10,100,  255,80,225,  30,8,28,    80,20,70,   230,40,200,  255,200,245, 255,240,255, 90,20,80},
-    {"Dourado",    255,245,190, 220,175,60,  120,85,10,   255,205,90,  28,22,6,    75,58,15,   220,175,60,  255,235,160, 40,30,0,     150,40,30},
-    {"Bronze",     240,200,165, 190,120,70,  90,50,25,    220,150,100, 28,18,10,   72,42,20,   190,120,70,  240,210,180, 30,15,5,     120,40,30},
-    {"Marrom",     190,150,120, 130,85,55,   55,30,15,    170,120,80,  22,15,10,   60,38,22,   130,85,55,   220,190,160, 30,18,10,    100,35,25},
-    {"Branco",     255,255,255, 230,230,230, 140,140,140, 200,200,200, 20,20,20,   55,55,55,   230,230,230, 240,240,240, 20,20,20,    80,80,80},
-    {"Prata",      230,235,245, 180,190,210, 90,100,120,  210,220,235, 18,20,26,   50,55,68,   180,190,210, 230,235,245, 20,25,35,    120,90,60},
-    {"Preto",      90,90,100,   40,40,50,    10,10,15,    120,120,140, 8,8,12,     28,28,35,   60,60,75,    180,180,200, 240,240,255, 160,40,40},
-    {"Grafite",    140,145,155, 85,90,100,   35,38,45,    160,170,185, 14,15,18,   42,45,52,   85,90,100,   200,205,215, 240,245,255, 140,60,45},
-    {"Arco-íris",  255,150,255, 120,180,255, 60,30,120,   180,140,255, 18,12,32,   45,30,80,   150,100,240, 240,210,255, 250,240,255, 200,50,150},
-}
+-- ===== CORES AZUIS =====
+local RET_COLOR  = Color3.fromRGB(60, 150, 255)
+local RET_ACCENT = Color3.fromRGB(130, 200, 255)
+local HL_FILL    = Color3.fromRGB(60, 150, 255)
+local HL_OUTLINE = Color3.fromRGB(180, 220, 255)
 
-local function C(a, b, c) return Color3.fromRGB(a, b, c) end
-
-local THEMES = {}
-for _, d in ipairs(THEME_DATA) do
-    table.insert(THEMES, {
-        name       = d[1],
-        ballHi     = C(d[2],  d[3],  d[4]),
-        ballMain   = C(d[5],  d[6],  d[7]),
-        ballLo     = C(d[8],  d[9],  d[10]),
-        accent     = C(d[11], d[12], d[13]),
-        menuBg     = C(d[14], d[15], d[16]),
-        btnIdle    = C(d[17], d[18], d[19]),
-        btnOn      = C(d[20], d[21], d[22]),
-        txtIdle    = C(d[23], d[24], d[25]),
-        txtOn      = C(d[26], d[27], d[28]),
-        lockOn     = C(d[29], d[30], d[31]),
-        reticle        = C(d[5],  d[6],  d[7]),
-        reticleAccent  = C(d[11], d[12], d[13]),
-    })
-end
-
-local RETICLE_NAMES = {
-    "Souls", "Ponto", "Diamante", "Triângulo", "Hexágono", "Quadrado",
-    "Cruz", "Chevron", "Colchete", "Estrela", "Spinner", "Alvo",
-}
+-- ===== PALETA W95 =====
+local W95_BG        = Color3.fromRGB(192,192,192)
+local W95_HIGHLIGHT = Color3.fromRGB(255,255,255)
+local W95_SHADOW    = Color3.fromRGB(128,128,128)
+local W95_DARK      = Color3.fromRGB(64,64,64)
+local W95_TITLE_A   = Color3.fromRGB(0,0,128)
+local W95_TITLE_B   = Color3.fromRGB(16,132,208)
+local W95_TEXT      = Color3.fromRGB(0,0,0)
+local W95_WHITE     = Color3.fromRGB(255,255,255)
+local W95_GREEN     = Color3.fromRGB(0,200,0)
+local W95_NAVY      = Color3.fromRGB(0,0,128)
+local W95_RED       = Color3.fromRGB(200,30,30)
 
 -- ===== ESTADO =====
 local LockOn         = false
 local Target         = nil
 local Movable        = true
-local MenuOpen       = false
 local CameraDistance = 8
 local BodyHidden     = false
-local currentTheme   = 1
 local currentReticle = 1
 local reticleAngle   = 0
 
-local function Tween(obj, props, t, s, d)
-    t = t or 0.22
-    s = s or Enum.EasingStyle.Quad
-    d = d or Enum.EasingDirection.Out
-    TweenService:Create(obj, TweenInfo.new(t, s, d), props):Play()
+local RETICLE_NAMES = {
+    "Souls", "Ponto", "Cruz", "Diamante", "Triângulo", "Hexágono",
+    "Quadrado", "Chevron", "Colchete", "Estrela", "Spinner", "Alvo",
+}
+
+-- ============================================================
+-- ============ HELPERS W95 ===================================
+-- ============================================================
+local function AddBevel(gui, raised)
+    gui.BorderSizePixel = 0
+    local topC = raised and W95_HIGHLIGHT or W95_DARK
+    local botC = raised and W95_DARK or W95_HIGHLIGHT
+    local z = (gui.ZIndex or 1) + 1
+    local t = Instance.new("Frame", gui)
+    t.Size = UDim2.new(1,0,0,1); t.BackgroundColor3 = topC
+    t.BorderSizePixel = 0; t.ZIndex = z
+    local l = Instance.new("Frame", gui)
+    l.Size = UDim2.new(0,1,1,0); l.BackgroundColor3 = topC
+    l.BorderSizePixel = 0; l.ZIndex = z
+    local b = Instance.new("Frame", gui)
+    b.Size = UDim2.new(1,0,0,1); b.Position = UDim2.new(0,0,1,-1)
+    b.BackgroundColor3 = botC; b.BorderSizePixel = 0; b.ZIndex = z
+    local r = Instance.new("Frame", gui)
+    r.Size = UDim2.new(0,1,1,0); r.Position = UDim2.new(1,-1,0,0)
+    r.BackgroundColor3 = botC; r.BorderSizePixel = 0; r.ZIndex = z
 end
 
-local function TH() return THEMES[currentTheme] end
+local function Sunken(parent, size, pos, bg)
+    local f = Instance.new("Frame")
+    f.Size = size; f.Position = pos
+    f.BackgroundColor3 = bg or W95_WHITE
+    f.BorderSizePixel = 0
+    f.Parent = parent
+    AddBevel(f, false)
+    return f
+end
+
+local function W95Btn(parent, size, pos, text, fontSize, z)
+    local b = Instance.new("TextButton")
+    b.Size = size; b.Position = pos
+    b.BackgroundColor3 = W95_BG
+    b.Text = ""; b.BorderSizePixel = 0
+    b.AutoButtonColor = false
+    b.ZIndex = z or 6
+    b.Parent = parent
+    AddBevel(b, true)
+    local lbl = Instance.new("TextLabel")
+    lbl.Size = UDim2.new(1,-4,1,-4); lbl.Position = UDim2.new(0,2,0,2)
+    lbl.BackgroundTransparency = 1
+    lbl.Text = text
+    lbl.Font = Enum.Font.SourceSansBold
+    lbl.TextSize = fontSize or 14
+    lbl.TextColor3 = W95_TEXT
+    lbl.ZIndex = (z or 6) + 2
+    lbl.Parent = b
+    return b, lbl
+end
 
 -- ============================================================
 -- ============ GUI ===========================================
 -- ============================================================
 local ScreenGui = Instance.new("ScreenGui")
-ScreenGui.Name = "VentisLockOn"
+ScreenGui.Name = "VentisWin95"
 ScreenGui.ResetOnSpawn = false
 ScreenGui.IgnoreGuiInset = true
 ScreenGui.DisplayOrder = 999
 ScreenGui.Parent = Player:WaitForChild("PlayerGui")
 
-local Container = Instance.new("Frame")
-Container.Name = "Container"
-Container.AnchorPoint = Vector2.new(1, 0.5)
-Container.Size = UDim2.new(0, 400, 0, 130)
-Container.Position = UDim2.new(1, -20, 0.5, 0)
-Container.BackgroundTransparency = 1
-Container.Active = true
-Container.Parent = ScreenGui
+-- ===== BOLINHA RETRÔ (independente) =====
+local Trigger = W95Btn(ScreenGui,
+    UDim2.new(0, 54, 0, 54),
+    UDim2.new(0, 20, 0, 100),
+    "⊕", 26, 10)
 
--- BOLA
-local Ball = Instance.new("TextButton")
-Ball.AnchorPoint = Vector2.new(1, 0.5)
-Ball.Size = UDim2.new(0, 60, 0, 60)
-Ball.Position = UDim2.new(1, 0, 0.5, 0)
-Ball.Text = ""
-Ball.BorderSizePixel = 0
-Ball.AutoButtonColor = false
-Ball.ZIndex = 5
-Ball.Active = true
-Ball.Parent = Container
-Instance.new("UICorner", Ball).CornerRadius = UDim.new(1, 0)
+-- ===== JANELA (independente) =====
+local Window = Instance.new("Frame")
+Window.Name = "Window"
+Window.Size = UDim2.new(0, 260, 0, 175)
+Window.Position = UDim2.new(0, 80, 0, 100)
+Window.BackgroundColor3 = W95_BG
+Window.BorderSizePixel = 0
+Window.Visible = true
+Window.ZIndex = 5
+Window.Parent = ScreenGui
+AddBevel(Window, true)
 
-local BallGrad = Instance.new("UIGradient")
-BallGrad.Rotation = 135
-BallGrad.Parent = Ball
+-- Title bar
+local TitleBar = Instance.new("Frame")
+TitleBar.Size = UDim2.new(1,-6,0,22); TitleBar.Position = UDim2.new(0,3,0,3)
+TitleBar.BackgroundColor3 = W95_NAVY; TitleBar.BorderSizePixel = 0
+TitleBar.ZIndex = 6; TitleBar.Parent = Window
 
-local BallStroke = Instance.new("UIStroke")
-BallStroke.Thickness = 2
-BallStroke.Transparency = 0.3
-BallStroke.Parent = Ball
+local TitleGrad = Instance.new("UIGradient")
+TitleGrad.Color = ColorSequence.new({
+    ColorSequenceKeypoint.new(0, W95_TITLE_A),
+    ColorSequenceKeypoint.new(1, W95_TITLE_B),
+})
+TitleGrad.Parent = TitleBar
 
-local Glow = Instance.new("Frame")
-Glow.Size = UDim2.new(0, 74, 0, 74)
-Glow.Position = UDim2.new(0.5, 0, 0.5, 0)
-Glow.AnchorPoint = Vector2.new(0.5, 0.5)
-Glow.BackgroundTransparency = 1
-Glow.ZIndex = 4
-Glow.Parent = Ball
-Instance.new("UICorner", Glow).CornerRadius = UDim.new(1, 0)
+local TitleIcon = Instance.new("TextLabel")
+TitleIcon.Size = UDim2.new(0,18,1,0); TitleIcon.Position = UDim2.new(0,2,0,0)
+TitleIcon.BackgroundTransparency = 1
+TitleIcon.Text = "⚡"
+TitleIcon.Font = Enum.Font.SourceSansBold
+TitleIcon.TextSize = 14
+TitleIcon.TextColor3 = W95_WHITE
+TitleIcon.ZIndex = 7
+TitleIcon.Parent = TitleBar
 
-local GlowStroke = Instance.new("UIStroke")
-GlowStroke.Thickness = 3
-GlowStroke.Transparency = 0.5
-GlowStroke.Parent = Glow
+local TitleText = Instance.new("TextLabel")
+TitleText.Size = UDim2.new(1,-40,1,0); TitleText.Position = UDim2.new(0,20,0,0)
+TitleText.BackgroundTransparency = 1
+TitleText.Text = "VENTIS HUB  v1.0"
+TitleText.Font = Enum.Font.SourceSansBold
+TitleText.TextSize = 12
+TitleText.TextColor3 = W95_WHITE
+TitleText.TextXAlignment = Enum.TextXAlignment.Left
+TitleText.ZIndex = 7
+TitleText.Parent = TitleBar
 
-local BallIcon = Instance.new("TextLabel")
-BallIcon.Size = UDim2.new(1, 0, 1, 0)
-BallIcon.BackgroundTransparency = 1
-BallIcon.Text = "◎"
-BallIcon.Font = Enum.Font.GothamBold
-BallIcon.TextSize = 30
-BallIcon.ZIndex = 6
-BallIcon.Parent = Ball
+local CloseBtn, CloseLbl = W95Btn(TitleBar, UDim2.new(0,18,0,16),
+                                  UDim2.new(1,-20,0,3), "✕", 12, 8)
+CloseLbl.TextColor3 = W95_RED
 
--- MENU
-local MenuContent = Instance.new("Frame")
-MenuContent.AnchorPoint = Vector2.new(1, 0.5)
-MenuContent.Size = UDim2.new(0, 320, 0, 115)
-MenuContent.Position = UDim2.new(1, -65, 0.5, 0)
-MenuContent.BorderSizePixel = 0
-MenuContent.BackgroundTransparency = 1
-MenuContent.Visible = false
-MenuContent.ZIndex = 1
-MenuContent.Parent = Container
-Instance.new("UICorner", MenuContent).CornerRadius = UDim.new(0, 28)
+-- Botão LOCK
+local EnableBtn, EnableLbl = W95Btn(Window,
+    UDim2.new(1,-12, 0,28), UDim2.new(0,6,0,29), "LOCK: OFF", 14, 6)
 
-local MenuStroke = Instance.new("UIStroke")
-MenuStroke.Thickness = 1.5
-MenuStroke.Transparency = 1
-MenuStroke.Parent = MenuContent
+-- Header MÓDULOS
+local ModHeader = Instance.new("Frame")
+ModHeader.Size = UDim2.new(1,-12,0,18); ModHeader.Position = UDim2.new(0,6,0,61)
+ModHeader.BackgroundColor3 = W95_NAVY; ModHeader.BorderSizePixel = 0
+ModHeader.ZIndex = 6; ModHeader.Parent = Window
 
--- Helper para botões do menu
-local function NewMenuButton(text, size, pos, fontSize)
-    local b = Instance.new("TextButton")
-    b.Size = size
-    b.Position = pos
-    b.Text = text
-    b.Font = Enum.Font.GothamBold
-    b.TextSize = fontSize
-    b.TextWrapped = true
-    b.BorderSizePixel = 0
-    b.AutoButtonColor = false
-    b.BackgroundTransparency = 1
-    b.TextTransparency = 1
-    b.ZIndex = 2
-    b.Parent = MenuContent
-    Instance.new("UICorner", b).CornerRadius = UDim.new(0, 20)
-    local s = Instance.new("UIStroke", b)
-    s.Thickness = 1
-    s.Transparency = 1
-    return b, s
+local ModHeaderText = Instance.new("TextLabel")
+ModHeaderText.Size = UDim2.new(1,-8,1,0); ModHeaderText.Position = UDim2.new(0,6,0,0)
+ModHeaderText.BackgroundTransparency = 1
+ModHeaderText.Text = "▶  MÓDULOS"
+ModHeaderText.Font = Enum.Font.SourceSansBold
+ModHeaderText.TextSize = 12
+ModHeaderText.TextColor3 = W95_WHITE
+ModHeaderText.TextXAlignment = Enum.TextXAlignment.Left
+ModHeaderText.ZIndex = 7; ModHeaderText.Parent = ModHeader
+
+-- Lista
+local ModuleList = Sunken(Window, UDim2.new(1,-12,0,88), UDim2.new(0,6,0,81), W95_WHITE)
+ModuleList.ZIndex = 6
+
+local function MakeRow(y, label)
+    local row = Instance.new("Frame")
+    row.Size = UDim2.new(1,0,0,28); row.Position = UDim2.new(0,0,0,y)
+    row.BackgroundTransparency = 1; row.ZIndex = 7; row.Parent = ModuleList
+
+    local cb = Instance.new("Frame")
+    cb.Size = UDim2.new(0,14,0,14); cb.Position = UDim2.new(0,6,0.5,-7)
+    cb.BackgroundColor3 = W95_WHITE; cb.BorderSizePixel = 0
+    cb.ZIndex = 8; cb.Parent = row
+    AddBevel(cb, false)
+
+    local check = Instance.new("TextLabel")
+    check.Size = UDim2.new(1,0,1,0); check.BackgroundTransparency = 1
+    check.Text = "✓"; check.Font = Enum.Font.SourceSansBold
+    check.TextSize = 12; check.TextColor3 = W95_TEXT
+    check.Visible = false; check.ZIndex = 9; check.Parent = cb
+
+    local txt = Instance.new("TextLabel")
+    txt.Size = UDim2.new(1,-32,1,0); txt.Position = UDim2.new(0,26,0,0)
+    txt.BackgroundTransparency = 1
+    txt.Text = label
+    txt.Font = Enum.Font.SourceSansBold
+    txt.TextSize = 12
+    txt.TextColor3 = W95_TEXT
+    txt.TextXAlignment = Enum.TextXAlignment.Left
+    txt.ZIndex = 8; txt.Parent = row
+
+    local sep = Instance.new("Frame")
+    sep.Size = UDim2.new(1,-8,0,1); sep.Position = UDim2.new(0,4,1,-1)
+    sep.BackgroundColor3 = W95_SHADOW; sep.BorderSizePixel = 0
+    sep.ZIndex = 7; sep.Parent = row
+
+    local hit = Instance.new("TextButton")
+    hit.Size = UDim2.new(1,0,1,0)
+    hit.BackgroundTransparency = 1
+    hit.Text = ""; hit.AutoButtonColor = false
+    hit.ZIndex = 6; hit.Parent = row
+
+    return row, cb, check, txt, hit
 end
 
-local Button,      ButtonStroke      = NewMenuButton("LOCK ON\nOFF", UDim2.new(0,140,0,51), UDim2.new(0,  4,0,  2), 15)
-local ZoomMinus,   ZoomMinusStroke   = NewMenuButton("−",            UDim2.new(0, 36,0,51), UDim2.new(0,148,0,  2), 24)
-local ZoomPlus,    ZoomPlusStroke    = NewMenuButton("+",            UDim2.new(0, 36,0,51), UDim2.new(0,232,0,  2), 22)
-local LockBtn,     LockStroke        = NewMenuButton("🔓",           UDim2.new(0, 44,0,51), UDim2.new(0,272,0,  2), 22)
-local ReticleBtn,  ReticleStroke     = NewMenuButton("MIRA: Souls",  UDim2.new(0,154,0,51), UDim2.new(0,  4,0, 60), 14)
-local ThemeBtn,    ThemeStroke       = NewMenuButton("COR: Amarelo", UDim2.new(0,154,0,51), UDim2.new(0,162,0, 60), 14)
+local RowMira,   _, RowMiraCheck,   RowMiraTxt,   RowMiraHit   = MakeRow(1,  "MIRA: Souls")
+local RowZoom,   _, RowZoomCheck,   RowZoomTxt,   _            = MakeRow(29, "ZOOM: 8m")
+local RowTravar, _, RowTravarCheck, RowTravarTxt, RowTravarHit = MakeRow(57, "TRAVAR JANELA")
 
--- Label do zoom (não é botão)
-local ZoomLabel = Instance.new("TextLabel")
-ZoomLabel.Size = UDim2.new(0, 40, 0, 51)
-ZoomLabel.Position = UDim2.new(0, 188, 0, 2)
-ZoomLabel.BackgroundTransparency = 1
-ZoomLabel.Text = "8m"
-ZoomLabel.Font = Enum.Font.GothamBold
-ZoomLabel.TextSize = 14
-ZoomLabel.TextTransparency = 1
-ZoomLabel.ZIndex = 2
-ZoomLabel.Parent = MenuContent
+RowMiraCheck.Visible = true
+RowZoomCheck.Visible = true
+
+local ZoomMinus, ZoomMinusLbl = W95Btn(RowZoom, UDim2.new(0,26,0,22), UDim2.new(1,-60,0.5,-11), "−", 14, 9)
+local ZoomPlus,  ZoomPlusLbl  = W95Btn(RowZoom, UDim2.new(0,26,0,22), UDim2.new(1,-30,0.5,-11), "+", 14, 9)
 
 -- ============================================================
--- ============ RETICLE GUI + HELPERS =========================
+-- ============ RETICLE GUI ===================================
 -- ============================================================
 local ReticleGui = Instance.new("BillboardGui")
 ReticleGui.Size = UDim2.new(0, 130, 0, 130)
@@ -229,418 +259,216 @@ ReticleGui.Parent = ScreenGui
 
 local function NewF(parent, size, pos, anchor)
     local f = Instance.new("Frame")
-    f.Size = size or UDim2.new(1, 0, 1, 0)
-    f.Position = pos or UDim2.new(0, 0, 0, 0)
-    f.AnchorPoint = anchor or Vector2.new(0, 0)
+    f.Size = size or UDim2.new(1,0,1,0)
+    f.Position = pos or UDim2.new(0,0,0,0)
+    f.AnchorPoint = anchor or Vector2.new(0,0)
     f.BackgroundTransparency = 1
     f.BorderSizePixel = 0
     f.Parent = parent
     return f
 end
-
 local function NewBar(parent, w, h, x, y, rot)
     local f = Instance.new("Frame")
-    f.Size = UDim2.new(0, w, 0, h)
-    f.Position = UDim2.new(0.5, x, 0.5, y)
-    f.AnchorPoint = Vector2.new(0.5, 0.5)
+    f.Size = UDim2.new(0,w,0,h)
+    f.Position = UDim2.new(0.5,x,0.5,y)
+    f.AnchorPoint = Vector2.new(0.5,0.5)
     f.BorderSizePixel = 0
     f.Rotation = rot or 0
+    f.BackgroundColor3 = RET_COLOR
     f.Parent = parent
-    Instance.new("UICorner", f).CornerRadius = UDim.new(1, 0)
+    Instance.new("UICorner", f).CornerRadius = UDim.new(1,0)
     return f
 end
-
 local function NewRing(parent, size, thickness)
     local f = Instance.new("Frame")
-    f.Size = UDim2.new(0, size, 0, size)
-    f.Position = UDim2.new(0.5, 0, 0.5, 0)
-    f.AnchorPoint = Vector2.new(0.5, 0.5)
+    f.Size = UDim2.new(0,size,0,size)
+    f.Position = UDim2.new(0.5,0,0.5,0)
+    f.AnchorPoint = Vector2.new(0.5,0.5)
     f.BackgroundTransparency = 1
     f.BorderSizePixel = 0
     f.Parent = parent
-    Instance.new("UICorner", f).CornerRadius = UDim.new(1, 0)
+    Instance.new("UICorner", f).CornerRadius = UDim.new(1,0)
     local s = Instance.new("UIStroke", f)
     s.Thickness = thickness or 2
+    s.Color = RET_COLOR
     return f, s
 end
-
 local function NewSpinner(parent)
-    return NewF(parent, UDim2.new(1, 0, 1, 0), UDim2.new(0.5, 0, 0.5, 0), Vector2.new(0.5, 0.5))
+    return NewF(parent, UDim2.new(1,0,1,0), UDim2.new(0.5,0,0.5,0), Vector2.new(0.5,0.5))
 end
 
--- ============================================================
--- ============ 12 BUILDERS DE MIRA ===========================
--- ============================================================
-local function BuildSouls(parent)
-    local root = NewF(parent)
-    local _, outerS = NewRing(root, 90, 3)
-    local _, innerS = NewRing(root, 74, 1)
-    local ticks = {
-        NewBar(root, 4, 16, 0, -56), NewBar(root, 4, 16, 0, 56),
-        NewBar(root, 16, 4, -56, 0), NewBar(root, 16, 4, 56, 0),
-    }
-    local dot = NewBar(root, 5, 5, 0, 0)
-    return {
-        root = root,
-        applyColor = function(main, accent)
-            outerS.Color = main; innerS.Color = accent
-            for _, t in ipairs(ticks) do t.BackgroundColor3 = main end
-            dot.BackgroundColor3 = main
-        end,
-        pulse = function(p)
-            outerS.Transparency = 0.05 + p * 0.15
-            innerS.Transparency = 0.5 + p * 0.3
-        end,
-    }
+local function BuildSouls(p)
+    local root = NewF(p)
+    local _, s1 = NewRing(root, 90, 3)
+    local _, s2 = NewRing(root, 74, 1); s2.Color = RET_ACCENT
+    NewBar(root,4,16,0,-56); NewBar(root,4,16,0,56)
+    NewBar(root,16,4,-56,0); NewBar(root,16,4,56,0)
+    NewBar(root,5,5,0,0)
+    return { root=root, pulse=function(pl)
+        s1.Transparency = 0.05 + pl*0.15
+        s2.Transparency = 0.5  + pl*0.3
+    end }
 end
-
-local function BuildDot(parent)
-    local root = NewF(parent)
-    local dot = NewBar(root, 6, 6, 0, 0)
-    local dashes = {
-        NewBar(root, 2, 8, 0, -20), NewBar(root, 2, 8, 0, 20),
-        NewBar(root, 8, 2, -20, 0), NewBar(root, 8, 2, 20, 0),
-    }
-    return {
-        root = root,
-        applyColor = function(main)
-            dot.BackgroundColor3 = main
-            for _, d in ipairs(dashes) do d.BackgroundColor3 = main end
-        end,
-        pulse = function(p)
-            dot.BackgroundTransparency = 0.1 + p * 0.3
-        end,
-    }
+local function BuildDot(p)
+    local root = NewF(p)
+    local dot = NewBar(root,6,6,0,0)
+    NewBar(root,2,8,0,-20); NewBar(root,2,8,0,20)
+    NewBar(root,8,2,-20,0); NewBar(root,8,2,20,0)
+    return { root=root, pulse=function(pl) dot.BackgroundTransparency = 0.1 + pl*0.3 end }
 end
-
-local function BuildDiamond(parent)
-    local root = NewF(parent)
-    local spinner = NewSpinner(root)
-    local outer = NewF(spinner, UDim2.new(0, 70, 0, 70), UDim2.new(0.5,0,0.5,0), Vector2.new(0.5,0.5))
-    outer.Rotation = 45
-    Instance.new("UICorner", outer).CornerRadius = UDim.new(0, 6)
-    local outerS = Instance.new("UIStroke", outer); outerS.Thickness = 3
-    local inner = NewF(spinner, UDim2.new(0, 46, 0, 46), UDim2.new(0.5,0,0.5,0), Vector2.new(0.5,0.5))
-    inner.Rotation = 45
-    Instance.new("UICorner", inner).CornerRadius = UDim.new(0, 4)
-    local innerS = Instance.new("UIStroke", inner); innerS.Thickness = 1
-    local dots = {}
-    for i = 1, 4 do
-        local a = math.rad((i-1) * 90)
-        table.insert(dots, NewBar(spinner, 4, 4, math.sin(a)*46, -math.cos(a)*46))
-    end
-    return {
-        root = root,
-        applyColor = function(main, accent)
-            outerS.Color = main; innerS.Color = accent
-            for _, d in ipairs(dots) do d.BackgroundColor3 = main end
-        end,
-        pulse = function(p) outerS.Transparency = 0.05 + p * 0.15 end,
-        spin = function(a) spinner.Rotation = a end,
-    }
+local function BuildCross(p)
+    local root = NewF(p)
+    NewBar(root,4,4,0,0)
+    local b = { NewBar(root,2,16,0,-14), NewBar(root,2,16,0,14),
+                NewBar(root,16,2,-14,0), NewBar(root,16,2,14,0) }
+    return { root=root, pulse=function(pl) for _,x in ipairs(b) do x.BackgroundTransparency = pl*0.3 end end }
 end
-
-local function BuildTriangle(parent)
-    local root = NewF(parent)
-    local spinner = NewSpinner(root)
+local function BuildDiamond(p)
+    local root = NewF(p)
+    local sp = NewSpinner(root)
+    local o = NewF(sp, UDim2.new(0,70,0,70), UDim2.new(0.5,0,0.5,0), Vector2.new(0.5,0.5))
+    o.Rotation = 45
+    Instance.new("UICorner", o).CornerRadius = UDim.new(0,6)
+    local os = Instance.new("UIStroke", o); os.Thickness = 3; os.Color = RET_COLOR
+    local i = NewF(sp, UDim2.new(0,46,0,46), UDim2.new(0.5,0,0.5,0), Vector2.new(0.5,0.5))
+    i.Rotation = 45
+    Instance.new("UICorner", i).CornerRadius = UDim.new(0,4)
+    local is_ = Instance.new("UIStroke", i); is_.Thickness = 1; is_.Color = RET_ACCENT
+    return { root=root, pulse=function(pl) os.Transparency = 0.05 + pl*0.15 end,
+             spin=function(a) sp.Rotation = a end }
+end
+local function BuildTriangle(p)
+    local root = NewF(p)
+    local sp = NewSpinner(root)
     local ticks = {}
     for i = 1, 3 do
-        local a = (i-1) * 120
+        local a = (i-1)*120
         local r = math.rad(a)
-        table.insert(ticks, NewBar(spinner, 5, 20, math.sin(r)*50, -math.cos(r)*50, a))
+        ticks[i] = NewBar(sp, 5, 20, math.sin(r)*50, -math.cos(r)*50, a)
     end
-    local dot = NewBar(spinner, 4, 4, 0, 0)
-    return {
-        root = root,
-        applyColor = function(main)
-            for _, t in ipairs(ticks) do t.BackgroundColor3 = main end
-            dot.BackgroundColor3 = main
-        end,
-        pulse = function(p)
-            for _, t in ipairs(ticks) do t.BackgroundTransparency = p * 0.3 end
-        end,
-        spin = function(a) spinner.Rotation = a end,
-    }
+    NewBar(sp, 4, 4, 0, 0)
+    return { root=root, pulse=function(pl) for _,t in ipairs(ticks) do t.BackgroundTransparency = pl*0.3 end end,
+             spin=function(a) sp.Rotation = a end }
 end
-
-local function BuildHexagon(parent)
-    local root = NewF(parent)
-    local spinner = NewSpinner(root)
+local function BuildHexagon(p)
+    local root = NewF(p)
+    local sp = NewSpinner(root)
     local ticks = {}
     for i = 1, 6 do
-        local a = (i-1) * 60
+        local a = (i-1)*60
         local r = math.rad(a)
-        table.insert(ticks, NewBar(spinner, 4, 14, math.sin(r)*48, -math.cos(r)*48, a))
+        ticks[i] = NewBar(sp, 4, 14, math.sin(r)*48, -math.cos(r)*48, a)
     end
-    return {
-        root = root,
-        applyColor = function(main)
-            for _, t in ipairs(ticks) do t.BackgroundColor3 = main end
-        end,
-        pulse = function(p)
-            for _, t in ipairs(ticks) do t.BackgroundTransparency = p * 0.3 end
-        end,
-        spin = function(a) spinner.Rotation = a end,
-    }
+    return { root=root, pulse=function(pl) for _,t in ipairs(ticks) do t.BackgroundTransparency = pl*0.3 end end,
+             spin=function(a) sp.Rotation = a end }
 end
-
-local function BuildSquare(parent)
-    local root = NewF(parent)
-    local outer = NewF(root, UDim2.new(0,80,0,80), UDim2.new(0.5,0,0.5,0), Vector2.new(0.5,0.5))
-    Instance.new("UICorner", outer).CornerRadius = UDim.new(0, 4)
-    local outerS = Instance.new("UIStroke", outer); outerS.Thickness = 3
-    local inner = NewF(root, UDim2.new(0,60,0,60), UDim2.new(0.5,0,0.5,0), Vector2.new(0.5,0.5))
-    Instance.new("UICorner", inner).CornerRadius = UDim.new(0, 3)
-    local innerS = Instance.new("UIStroke", inner); innerS.Thickness = 1
-    local dot = NewBar(root, 4, 4, 0, 0)
-    return {
-        root = root,
-        applyColor = function(main, accent)
-            outerS.Color = main; innerS.Color = accent
-            dot.BackgroundColor3 = main
-        end,
-        pulse = function(p)
-            outerS.Transparency = 0.05 + p * 0.15
-            innerS.Transparency = 0.5 + p * 0.3
-        end,
-    }
+local function BuildSquare(p)
+    local root = NewF(p)
+    local o = NewF(root, UDim2.new(0,80,0,80), UDim2.new(0.5,0,0.5,0), Vector2.new(0.5,0.5))
+    Instance.new("UICorner", o).CornerRadius = UDim.new(0,4)
+    local os = Instance.new("UIStroke", o); os.Thickness = 3; os.Color = RET_COLOR
+    local i = NewF(root, UDim2.new(0,60,0,60), UDim2.new(0.5,0,0.5,0), Vector2.new(0.5,0.5))
+    Instance.new("UICorner", i).CornerRadius = UDim.new(0,3)
+    local is_ = Instance.new("UIStroke", i); is_.Thickness = 1; is_.Color = RET_ACCENT
+    NewBar(root, 4, 4, 0, 0)
+    return { root=root, pulse=function(pl)
+        os.Transparency = 0.05 + pl*0.15
+        is_.Transparency = 0.5 + pl*0.3
+    end }
 end
-
-local function BuildCross(parent)
-    local root = NewF(parent)
-    local center = NewBar(root, 4, 4, 0, 0)
-    local bars = {
-        NewBar(root, 2, 16, 0, -14), NewBar(root, 2, 16, 0, 14),
-        NewBar(root, 16, 2, -14, 0), NewBar(root, 16, 2, 14, 0),
-    }
-    return {
-        root = root,
-        applyColor = function(main)
-            center.BackgroundColor3 = main
-            for _, b in ipairs(bars) do b.BackgroundColor3 = main end
-        end,
-        pulse = function(p)
-            for _, b in ipairs(bars) do b.BackgroundTransparency = p * 0.3 end
-        end,
-    }
+local function BuildChevron(p)
+    local root = NewF(p)
+    local l = NewBar(root,4,18,-6,-6,-30)
+    local r = NewBar(root,4,18, 6,-6, 30)
+    NewBar(root,4,4,0,14)
+    return { root=root, pulse=function(pl)
+        l.BackgroundTransparency = pl*0.3
+        r.BackgroundTransparency = pl*0.3
+    end }
 end
-
-local function BuildChevron(parent)
-    local root = NewF(parent)
-    local left  = NewBar(root, 4, 18, -6, -6, -30)
-    local right = NewBar(root, 4, 18,  6, -6,  30)
-    local dot   = NewBar(root, 4, 4, 0, 14)
-    return {
-        root = root,
-        applyColor = function(main)
-            left.BackgroundColor3 = main
-            right.BackgroundColor3 = main
-            dot.BackgroundColor3 = main
-        end,
-        pulse = function(p)
-            left.BackgroundTransparency = p * 0.3
-            right.BackgroundTransparency = p * 0.3
-        end,
-    }
-end
-
-local function BuildBracket(parent)
-    local root = NewF(parent)
+local function BuildBracket(p)
+    local root = NewF(p)
     local d, len, th = 32, 12, 3
     local bars = {
-        NewBar(root, th, len, -d, -d + len/2 - 2),
-        NewBar(root, len, th, -d + len/2 - 2, -d),
-        NewBar(root, th, len, d, -d + len/2 - 2),
-        NewBar(root, len, th, d - len/2 + 2, -d),
-        NewBar(root, th, len, -d, d - len/2 + 2),
-        NewBar(root, len, th, -d + len/2 - 2, d),
-        NewBar(root, th, len, d, d - len/2 + 2),
-        NewBar(root, len, th, d - len/2 + 2, d),
+        NewBar(root,th,len,-d,-d+len/2-2), NewBar(root,len,th,-d+len/2-2,-d),
+        NewBar(root,th,len,d,-d+len/2-2),  NewBar(root,len,th,d-len/2+2,-d),
+        NewBar(root,th,len,-d,d-len/2+2),  NewBar(root,len,th,-d+len/2-2,d),
+        NewBar(root,th,len,d,d-len/2+2),   NewBar(root,len,th,d-len/2+2,d),
     }
-    local dot = NewBar(root, 4, 4, 0, 0)
-    return {
-        root = root,
-        applyColor = function(main)
-            for _, b in ipairs(bars) do b.BackgroundColor3 = main end
-            dot.BackgroundColor3 = main
-        end,
-        pulse = function(p)
-            for _, b in ipairs(bars) do b.BackgroundTransparency = p * 0.25 end
-        end,
-    }
+    NewBar(root,4,4,0,0)
+    return { root=root, pulse=function(pl) for _,b in ipairs(bars) do b.BackgroundTransparency = pl*0.25 end end }
 end
-
-local function BuildStar(parent)
-    local root = NewF(parent)
-    local spinner = NewSpinner(root)
+local function BuildStar(p)
+    local root = NewF(p)
+    local sp = NewSpinner(root)
     local ticks = {}
     for i = 1, 5 do
-        local a = (i-1) * 72
+        local a = (i-1)*72
         local r = math.rad(a)
-        table.insert(ticks, NewBar(spinner, 4, 16, math.sin(r)*45, -math.cos(r)*45, a))
+        ticks[i] = NewBar(sp, 4, 16, math.sin(r)*45, -math.cos(r)*45, a)
     end
-    local dot = NewBar(spinner, 5, 5, 0, 0)
-    return {
-        root = root,
-        applyColor = function(main)
-            for _, t in ipairs(ticks) do t.BackgroundColor3 = main end
-            dot.BackgroundColor3 = main
-        end,
-        pulse = function(p)
-            for _, t in ipairs(ticks) do t.BackgroundTransparency = p * 0.3 end
-        end,
-        spin = function(a) spinner.Rotation = -a * 0.6 end,
-    }
+    NewBar(sp, 5, 5, 0, 0)
+    return { root=root, pulse=function(pl) for _,t in ipairs(ticks) do t.BackgroundTransparency = pl*0.3 end end,
+             spin=function(a) sp.Rotation = -a*0.6 end }
 end
-
-local function BuildSpinner(parent)
-    local root = NewF(parent)
-    local spinner = NewSpinner(root)
-    local ticks = {}
+local function BuildSpinner(p)
+    local root = NewF(p)
+    local sp = NewSpinner(root)
     local lengths = { 18, 12, 18, 12 }
     for i = 1, 4 do
-        local a = (i-1) * 90
+        local a = (i-1)*90
         local r = math.rad(a)
         local rad = 40 + lengths[i]
-        table.insert(ticks, NewBar(spinner, 3, lengths[i], math.sin(r)*rad, -math.cos(r)*rad, a))
+        NewBar(sp, 3, lengths[i], math.sin(r)*rad, -math.cos(r)*rad, a)
     end
-    local dot = NewBar(spinner, 4, 4, 0, 0)
-    return {
-        root = root,
-        applyColor = function(main)
-            for _, t in ipairs(ticks) do t.BackgroundColor3 = main end
-            dot.BackgroundColor3 = main
-        end,
-        pulse = function(p) end,
-        spin = function(a) spinner.Rotation = a * 2 end,
-    }
+    NewBar(sp, 4, 4, 0, 0)
+    return { root=root, pulse=function() end, spin=function(a) sp.Rotation = a*2 end }
 end
-
-local function BuildTarget(parent)
-    local root = NewF(parent)
+local function BuildTarget(p)
+    local root = NewF(p)
     local _, r1 = NewRing(root, 90, 2)
-    local _, r2 = NewRing(root, 60, 2)
+    local _, r2 = NewRing(root, 60, 2); r2.Color = RET_ACCENT
     local _, r3 = NewRing(root, 30, 2)
-    local dot = NewBar(root, 6, 6, 0, 0)
-    return {
-        root = root,
-        applyColor = function(main, accent)
-            r1.Color = main; r2.Color = accent; r3.Color = main
-            dot.BackgroundColor3 = main
-        end,
-        pulse = function(p)
-            r1.Transparency = 0.3 + p * 0.2
-            r2.Transparency = 0.3 + p * 0.2
-            r3.Transparency = 0.3 + p * 0.2
-        end,
-    }
+    NewBar(root, 6, 6, 0, 0)
+    return { root=root, pulse=function(pl)
+        r1.Transparency = 0.3 + pl*0.2
+        r2.Transparency = 0.3 + pl*0.2
+        r3.Transparency = 0.3 + pl*0.2
+    end }
 end
 
--- ===== CRIA AS 12 MIRAS =====
 local reticles = {
-    BuildSouls(ReticleGui),
-    BuildDot(ReticleGui),
-    BuildDiamond(ReticleGui),
-    BuildTriangle(ReticleGui),
-    BuildHexagon(ReticleGui),
-    BuildSquare(ReticleGui),
-    BuildCross(ReticleGui),
-    BuildChevron(ReticleGui),
-    BuildBracket(ReticleGui),
-    BuildStar(ReticleGui),
-    BuildSpinner(ReticleGui),
-    BuildTarget(ReticleGui),
+    BuildSouls(ReticleGui), BuildDot(ReticleGui), BuildCross(ReticleGui),
+    BuildDiamond(ReticleGui), BuildTriangle(ReticleGui), BuildHexagon(ReticleGui),
+    BuildSquare(ReticleGui), BuildChevron(ReticleGui), BuildBracket(ReticleGui),
+    BuildStar(ReticleGui), BuildSpinner(ReticleGui), BuildTarget(ReticleGui),
 }
 for i, r in ipairs(reticles) do r.root.Visible = (i == 1) end
 
--- Highlight
 local Highlight = Instance.new("Highlight")
-Highlight.OutlineColor = Color3.fromRGB(255, 255, 255)
-Highlight.FillTransparency = 0.88
-Highlight.OutlineTransparency = 0.6
+Highlight.FillColor = HL_FILL
+Highlight.OutlineColor = HL_OUTLINE
+Highlight.FillTransparency = 0.75
+Highlight.OutlineTransparency = 0.4
 Highlight.Enabled = false
 Highlight.Parent = ScreenGui
-
--- ============================================================
--- ============ APLICAR TEMA ==================================
--- ============================================================
-local function ApplyTheme(index, instant)
-    currentTheme = index
-    local th = THEMES[index]
-    local dur = instant and 0 or 0.35
-
-    BallGrad.Color = ColorSequence.new({
-        ColorSequenceKeypoint.new(0, th.ballHi),
-        ColorSequenceKeypoint.new(0.55, th.ballMain),
-        ColorSequenceKeypoint.new(1, th.ballLo),
-    })
-    BallStroke.Color = th.ballHi
-    GlowStroke.Color = th.accent
-    Tween(Ball, { BackgroundColor3 = MenuOpen and th.lockOn or th.ballMain }, dur)
-    BallIcon.TextColor3 = MenuOpen and Color3.new(1, 1, 1) or th.txtOn
-
-    Tween(MenuContent, { BackgroundColor3 = th.menuBg }, dur)
-    MenuStroke.Color = th.accent
-
-    Tween(Button, {
-        BackgroundColor3 = LockOn and th.btnOn or th.btnIdle,
-        TextColor3 = LockOn and th.txtOn or th.txtIdle,
-    }, dur)
-    ButtonStroke.Color = th.accent
-
-    Tween(ZoomMinus, { BackgroundColor3 = th.btnIdle, TextColor3 = th.txtIdle }, dur)
-    ZoomMinusStroke.Color = th.accent
-    Tween(ZoomPlus, { BackgroundColor3 = th.btnIdle, TextColor3 = th.txtIdle }, dur)
-    ZoomPlusStroke.Color = th.accent
-    Tween(ZoomLabel, { TextColor3 = th.txtIdle }, dur)
-
-    if Movable then
-        Tween(LockBtn, { BackgroundColor3 = th.btnIdle, TextColor3 = th.txtIdle }, dur)
-        LockStroke.Color = th.accent
-    else
-        Tween(LockBtn, { BackgroundColor3 = th.lockOn, TextColor3 = Color3.new(1, 1, 1) }, dur)
-        LockStroke.Color = th.lockOn
-    end
-
-    Tween(ReticleBtn, { BackgroundColor3 = th.btnIdle, TextColor3 = th.txtIdle }, dur)
-    ReticleStroke.Color = th.accent
-    Tween(ThemeBtn, { BackgroundColor3 = th.btnIdle, TextColor3 = th.txtIdle }, dur)
-    ThemeStroke.Color = th.accent
-
-    for _, r in ipairs(reticles) do
-        r.applyColor(th.reticle, th.reticleAccent)
-    end
-
-    Highlight.FillColor = th.reticle
-end
-
-local function ApplyReticle(index)
-    currentReticle = index
-    for i, r in ipairs(reticles) do
-        r.root.Visible = (i == index)
-    end
-    ReticleBtn.Text = "MIRA: " .. RETICLE_NAMES[index]
-    ApplyTheme(currentTheme, true)
-end
 
 -- ============================================================
 -- ============ HELPERS DE ALVO ===============================
 -- ============================================================
 local function GetRoot(model)
     if not model or not model:IsA("Model") then return nil end
-    local hum = model:FindFirstChildOfClass("Humanoid")
-    local root = model:FindFirstChild("HumanoidRootPart")
-    if not hum or not root or hum.Health <= 0 then return nil end
-    return root
+    local h = model:FindFirstChildOfClass("Humanoid")
+    local r = model:FindFirstChild("HumanoidRootPart")
+    if not h or not r or h.Health <= 0 then return nil end
+    return r
 end
-
 local function GetAim(model)
-    local head = model:FindFirstChild("Head")
-    if head then return head.Position end
-    local root = GetRoot(model)
-    return root and root.Position or nil
+    local hd = model:FindFirstChild("Head")
+    if hd then return hd.Position end
+    local r = GetRoot(model)
+    return r and r.Position or nil
 end
-
 local function FindNearest()
     local char = Player.Character
     local myRoot = char and char:FindFirstChild("HumanoidRootPart")
@@ -657,13 +485,10 @@ local function FindNearest()
     end
     for _, d in ipairs(workspace:GetDescendants()) do
         if d:IsA("Model") and d ~= Player.Character
-           and not Players:GetPlayerFromCharacter(d) then
-            check(d)
-        end
+           and not Players:GetPlayerFromCharacter(d) then check(d) end
     end
     return nearest
 end
-
 local function SetTarget(model)
     Target = model
     Highlight.Adornee = model
@@ -676,101 +501,34 @@ local function SetTarget(model)
         ReticleGui.Enabled = false
     end
 end
-
-local function SetTransparency(alpha)
-    local char = Player.Character
-    if not char then return end
-    for _, p in ipairs(char:GetDescendants()) do
-        if p:IsA("BasePart") then p.LocalTransparencyModifier = alpha end
+local function SetTransparency(a)
+    local c = Player.Character
+    if not c then return end
+    for _, p in ipairs(c:GetDescendants()) do
+        if p:IsA("BasePart") then p.LocalTransparencyModifier = a end
     end
 end
 
 -- ============================================================
--- ============ ZOOM ==========================================
+-- ============ LOCK ON / ZOOM ================================
 -- ============================================================
-local function SetZoom(distance)
-    CameraDistance = math.clamp(distance, ZOOM_MIN, ZOOM_MAX)
-    ZoomLabel.Text = string.format("%dm", math.floor(CameraDistance + 0.5))
-    local th = TH()
-    Tween(ZoomLabel, { TextColor3 = th.btnOn }, 0.1)
-    task.delay(0.15, function() Tween(ZoomLabel, { TextColor3 = th.txtIdle }, 0.25) end)
-    local wantHidden = CameraDistance < 2.0
-    if wantHidden ~= BodyHidden then
-        BodyHidden = wantHidden
-        SetTransparency(wantHidden and 1 or 0)
+local function UpdateEnableBtn()
+    if LockOn then
+        EnableLbl.Text = "LOCK: ON"
+        EnableBtn.BackgroundColor3 = W95_GREEN
+        EnableLbl.TextColor3 = W95_WHITE
+    else
+        EnableLbl.Text = "LOCK: OFF"
+        EnableBtn.BackgroundColor3 = W95_BG
+        EnableLbl.TextColor3 = W95_TEXT
     end
 end
 
-local function ChangeZoom(delta) SetZoom(CameraDistance + delta) end
-
--- ============================================================
--- ============ MENU ABRIR/FECHAR =============================
--- ============================================================
-local function OpenMenu()
-    MenuOpen = true
-    MenuContent.Visible = true
-    local th = TH()
-    Tween(MenuContent, { BackgroundTransparency = 0 }, 0.25)
-    Tween(MenuStroke, { Transparency = 0.3 }, 0.25)
-    Tween(Button, { BackgroundTransparency = 0, TextTransparency = 0 }, 0.25)
-    Tween(ButtonStroke, { Transparency = 0.5 }, 0.25)
-    task.delay(0.05, function()
-        Tween(ZoomMinus, { BackgroundTransparency = 0, TextTransparency = 0 }, 0.25)
-        Tween(ZoomMinusStroke, { Transparency = 0.5 }, 0.25)
-        Tween(ZoomLabel, { TextTransparency = 0 }, 0.25)
-        Tween(ZoomPlus, { BackgroundTransparency = 0, TextTransparency = 0 }, 0.25)
-        Tween(ZoomPlusStroke, { Transparency = 0.5 }, 0.25)
-    end)
-    task.delay(0.1, function()
-        Tween(LockBtn, { BackgroundTransparency = 0, TextTransparency = 0 }, 0.25)
-        Tween(LockStroke, { Transparency = 0.5 }, 0.25)
-        Tween(ReticleBtn, { BackgroundTransparency = 0, TextTransparency = 0 }, 0.25)
-        Tween(ReticleStroke, { Transparency = 0.5 }, 0.25)
-        Tween(ThemeBtn, { BackgroundTransparency = 0, TextTransparency = 0 }, 0.25)
-        Tween(ThemeStroke, { Transparency = 0.5 }, 0.25)
-    end)
-    Tween(BallIcon, { Rotation = 90 }, 0.25)
-    BallIcon.Text = "✕"
-    Tween(BallIcon, { TextColor3 = Color3.new(1, 1, 1) }, 0.25)
-    Tween(Ball, { BackgroundColor3 = th.lockOn }, 0.25)
-end
-
-local function CloseMenu()
-    MenuOpen = false
-    local th = TH()
-    for _, obj in ipairs({ Button, ZoomMinus, ZoomPlus, LockBtn, ReticleBtn, ThemeBtn }) do
-        Tween(obj, { BackgroundTransparency = 1, TextTransparency = 1 }, 0.15)
-    end
-    for _, s in ipairs({ ButtonStroke, ZoomMinusStroke, ZoomPlusStroke, LockStroke, ReticleStroke, ThemeStroke }) do
-        Tween(s, { Transparency = 1 }, 0.15)
-    end
-    Tween(ZoomLabel, { TextTransparency = 1 }, 0.15)
-    Tween(MenuContent, { BackgroundTransparency = 1 }, 0.15)
-    Tween(MenuStroke, { Transparency = 1 }, 0.15)
-    task.delay(0.15, function()
-        if not MenuOpen then MenuContent.Visible = false end
-    end)
-    BallIcon.Text = "◎"
-    BallIcon.Rotation = 0
-    Tween(BallIcon, { TextColor3 = th.txtOn }, 0.25)
-    Tween(Ball, { BackgroundColor3 = th.ballMain }, 0.25)
-end
-
-local function ToggleMenu()
-    if MenuOpen then CloseMenu() else OpenMenu() end
-end
-
--- ============================================================
--- ============ TOGGLE LOCK-ON ================================
--- ============================================================
 local function ToggleLockOn()
-    local th = TH()
     if not LockOn then
         local t = FindNearest()
         if not t then
             warn("[Ventis] Nenhum alvo num raio de " .. MAX_DISTANCE)
-            Tween(Button, { BackgroundColor3 = Color3.fromRGB(120,40,40) }, 0.1)
-            task.delay(0.15, function() Tween(Button, { BackgroundColor3 = th.btnIdle }, 0.25) end)
             return
         end
         LockOn = true
@@ -791,78 +549,113 @@ local function ToggleLockOn()
         SetTransparency(0)
         BodyHidden = false
     end
-    if LockOn then
-        Button.Text = "LOCK ON\nON"
-        Tween(Button, { BackgroundColor3 = th.btnOn, TextColor3 = th.txtOn }, 0.25)
-    else
-        Button.Text = "LOCK ON\nOFF"
-        Tween(Button, { BackgroundColor3 = th.btnIdle, TextColor3 = th.txtIdle }, 0.25)
+    UpdateEnableBtn()
+end
+
+local function SetZoom(d)
+    CameraDistance = math.clamp(d, ZOOM_MIN, ZOOM_MAX)
+    RowZoomTxt.Text = string.format("ZOOM: %dm", math.floor(CameraDistance + 0.5))
+    local hide = CameraDistance < 2.0
+    if hide ~= BodyHidden then
+        BodyHidden = hide
+        SetTransparency(hide and 1 or 0)
     end
+end
+local function ChangeZoom(d) SetZoom(CameraDistance + d) end
+
+-- ============================================================
+-- ============ MIRA ==========================================
+-- ============================================================
+local function ApplyReticle(index)
+    currentReticle = index
+    for i, r in ipairs(reticles) do
+        r.root.Visible = (i == index)
+    end
+    RowMiraTxt.Text = "MIRA: " .. RETICLE_NAMES[index]
+end
+
+-- ============================================================
+-- ============ ABRIR / FECHAR ================================
+-- ============================================================
+local function OpenWindow()
+    Window.Visible = true
+    local lbl = Trigger:FindFirstChildOfClass("TextLabel")
+    if lbl then lbl.Text = "✕" end
+end
+local function CloseWindow()
+    Window.Visible = false
+    local lbl = Trigger:FindFirstChildOfClass("TextLabel")
+    if lbl then lbl.Text = "⊕" end
+end
+local function ToggleWindow()
+    if Window.Visible then CloseWindow() else OpenWindow() end
 end
 
 -- ============================================================
 -- ============ INPUT =========================================
 -- ============================================================
-local dragging, dragStartMouse, dragStartContainer, didDrag = false, nil, nil, false
+Trigger.MouseButton1Click:Connect(ToggleWindow)
+CloseBtn.MouseButton1Click:Connect(CloseWindow)
 
-Ball.InputBegan:Connect(function(input)
+-- DRAG pela barra de título (SÓ move a janela)
+local dragActive, dragStart, winStart = false, nil, nil
+TitleBar.InputBegan:Connect(function(input)
     if input.UserInputType == Enum.UserInputType.Touch
     or input.UserInputType == Enum.UserInputType.MouseButton1 then
-        dragging = true
-        didDrag = false
-        dragStartMouse = Vector2.new(input.Position.X, input.Position.Y)
-        dragStartContainer = Container.Position
+        dragActive = true
+        dragStart  = Vector2.new(input.Position.X, input.Position.Y)
+        winStart   = Window.Position
     end
 end)
-
 local function TryDrag(input)
-    if not dragging then return end
+    if not dragActive or not Movable then return end
     local cur = Vector2.new(input.Position.X, input.Position.Y)
-    local delta = cur - dragStartMouse
-    if not didDrag and delta.Magnitude > DRAG_MIN and Movable then
-        didDrag = true
-    end
-    if didDrag then
-        Container.Position = UDim2.new(
-            dragStartContainer.X.Scale, dragStartContainer.X.Offset + delta.X,
-            dragStartContainer.Y.Scale, dragStartContainer.Y.Offset + delta.Y
-        )
-    end
+    local delta = cur - dragStart
+    if delta.Magnitude < DRAG_MIN then return end
+    Window.Position = UDim2.new(
+        winStart.X.Scale, winStart.X.Offset + delta.X,
+        winStart.Y.Scale, winStart.Y.Offset + delta.Y
+    )
 end
-
 UserInputService.TouchMoved:Connect(TryDrag)
 UserInputService.InputChanged:Connect(function(input)
     if input.UserInputType == Enum.UserInputType.MouseMovement then TryDrag(input) end
 end)
-
-local function FinishDrag()
-    if not dragging then return end
-    dragging = false
-    local wasDrag = didDrag
-    didDrag = false
-    if not wasDrag then ToggleMenu() end
-end
-
-UserInputService.TouchEnded:Connect(FinishDrag)
+local function EndDrag() dragActive = false end
+UserInputService.TouchEnded:Connect(EndDrag)
 UserInputService.InputEnded:Connect(function(input)
-    if input.UserInputType == Enum.UserInputType.MouseButton1 then FinishDrag() end
+    if input.UserInputType == Enum.UserInputType.MouseButton1 then EndDrag() end
 end)
 
-Button.MouseButton1Click:Connect(ToggleLockOn)
+-- Toggle lock
+EnableBtn.MouseButton1Click:Connect(ToggleLockOn)
 
--- ZOOM hold
-local zoomHoldActive = false
+-- Mira
+RowMiraHit.MouseButton1Click:Connect(function()
+    local n = currentReticle + 1
+    if n > #RETICLE_NAMES then n = 1 end
+    ApplyReticle(n)
+end)
+
+-- Travar janela
+RowTravarHit.MouseButton1Click:Connect(function()
+    Movable = not Movable
+    RowTravarCheck.Visible = not Movable
+end)
+
+-- Zoom hold
+local zoomHold = false
 local function StartZoomHold(d)
     ChangeZoom(d)
-    zoomHoldActive = true
+    zoomHold = true
     task.spawn(function()
-        while zoomHoldActive do
+        while zoomHold do
             task.wait(ZOOM_HOLD_TICK)
-            if zoomHoldActive then ChangeZoom(d) end
+            if zoomHold then ChangeZoom(d) end
         end
     end)
 end
-local function StopZoomHold() zoomHoldActive = false end
+local function StopZoomHold() zoomHold = false end
 
 ZoomMinus.MouseButton1Down:Connect(function() StartZoomHold(-ZOOM_STEP) end)
 ZoomMinus.MouseButton1Up:Connect(StopZoomHold)
@@ -874,33 +667,6 @@ UserInputService.InputEnded:Connect(function(input)
     if input.UserInputType == Enum.UserInputType.Touch then StopZoomHold() end
 end)
 
-LockBtn.MouseButton1Click:Connect(function()
-    Movable = not Movable
-    local th = TH()
-    if Movable then
-        LockBtn.Text = "🔓"
-        Tween(LockBtn, { BackgroundColor3 = th.btnIdle, TextColor3 = th.txtIdle }, 0.2)
-        Tween(LockStroke, { Color = th.accent, Transparency = 0.5 }, 0.2)
-    else
-        LockBtn.Text = "🔒"
-        Tween(LockBtn, { BackgroundColor3 = th.lockOn, TextColor3 = Color3.new(1,1,1) }, 0.2)
-        Tween(LockStroke, { Color = th.lockOn, Transparency = 0.1 }, 0.2)
-    end
-end)
-
-ReticleBtn.MouseButton1Click:Connect(function()
-    local n = currentReticle + 1
-    if n > #RETICLE_NAMES then n = 1 end
-    ApplyReticle(n)
-end)
-
-ThemeBtn.MouseButton1Click:Connect(function()
-    local n = currentTheme + 1
-    if n > #THEMES then n = 1 end
-    ApplyTheme(n)
-    ThemeBtn.Text = "COR: " .. THEMES[n].name
-end)
-
 -- ============================================================
 -- ============ RESPAWN =======================================
 -- ============================================================
@@ -910,11 +676,8 @@ Player.CharacterAdded:Connect(function()
         SetTarget(nil)
         Player.CameraMode = Enum.CameraMode.Classic
         Camera.CameraType = Enum.CameraType.Custom
-        Button.Text = "LOCK ON\nOFF"
-        local th = TH()
-        Button.BackgroundColor3 = th.btnIdle
-        Button.TextColor3 = th.txtIdle
         BodyHidden = false
+        UpdateEnableBtn()
     end
 end)
 
@@ -929,9 +692,7 @@ local pulseT = 0
 RunService.RenderStepped:Connect(function(dt)
     pulseT = pulseT + dt * 2.5
     local pulse = (math.sin(pulseT) + 1) * 0.5
-    GlowStroke.Transparency = 0.4 + pulse * 0.4
 
-    -- Spin + pulse do reticle ativo
     local active = reticles[currentReticle]
     if active then
         if active.pulse then active.pulse(pulse) end
@@ -942,7 +703,6 @@ RunService.RenderStepped:Connect(function(dt)
     end
 
     if not LockOn or not Target then return end
-
     local char = Player.Character
     if not char then return end
 
@@ -972,12 +732,10 @@ RunService.RenderStepped:Connect(function(dt)
         myRoot.CFrame = CFrame.lookAt(myRoot.Position, flatAim)
     end
 
-    -- Mira: escala com distância
     local scaleByDist = math.clamp(1 - (dist / MAX_DISTANCE) * 0.55, 0.45, 1)
     local baseSize = 130 * scaleByDist
     ReticleGui.Size = UDim2.new(0, baseSize, 0, baseSize)
 
-    -- Câmera
     local desired
     if CameraDistance < 1 then
         desired = CFrame.lookAt(head.Position, aimPos)
@@ -999,6 +757,7 @@ end)
 -- ============================================================
 -- ============ INIT ==========================================
 -- ============================================================
-ApplyTheme(1, true)
 ApplyReticle(1)
-ThemeBtn.Text = "COR: " .. THEMES[1].name
+SetZoom(8)
+UpdateEnableBtn()
+OpenWindow()
