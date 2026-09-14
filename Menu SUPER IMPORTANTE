@@ -1,0 +1,385 @@
+--[[
+    Ventis Hub - Menu Principal (v4 - Retro Admin Panel)
+]]
+
+local SCRIPTS = {
+    { nome = "AIM ON",   url = "https://raw.githubusercontent.com/Heitor946/VentisHub.lua/main/AIM%20ON" },
+    { nome = "Antilag",  url = "https://raw.githubusercontent.com/Heitor946/Antilag-VentisHub/main/Antilag" },
+}
+
+-- ===== Ambiente =====
+local function getParentGui()
+    if gethui then return gethui() end
+    if protect_gui then return protect_gui() end
+    return game:GetService("CoreGui")
+end
+local okP, parentGui = pcall(getParentGui)
+if not okP or not parentGui then
+    parentGui = game:GetService("Players").LocalPlayer:WaitForChild("PlayerGui")
+end
+
+-- ===== Paleta (tema retrô) =====
+local C = {
+    bg          = Color3.fromRGB(192, 192, 192),
+    bgInset     = Color3.fromRGB(160, 160, 160),
+    borderDark  = Color3.fromRGB(40, 40, 40),
+    borderLight = Color3.fromRGB(255, 255, 255),
+    bevelHi     = Color3.fromRGB(255, 255, 255),
+    bevelLo     = Color3.fromRGB(96, 96, 96),
+    btnHi       = Color3.fromRGB(224, 224, 224),
+    btnLo       = Color3.fromRGB(180, 180, 180),
+    btnPressed  = Color3.fromRGB(168, 168, 168),
+    textDark    = Color3.fromRGB(24, 24, 24),
+    textMuted   = Color3.fromRGB(80, 80, 80),
+    red         = Color3.fromRGB(200, 32, 32),
+    redLo       = Color3.fromRGB(120, 16, 16),
+    green       = Color3.fromRGB(60, 180, 60),
+    greenLo     = Color3.fromRGB(30, 110, 30),
+    yellow      = Color3.fromRGB(255, 216, 64),
+}
+
+-- ===== Layout =====
+local WIDTH   = 280
+local TITLE_H = 34
+local PAD     = 10
+local BTN_H   = 32
+local BTN_GAP = 8
+local totalH  = TITLE_H + PAD + 20 + PAD + (#SCRIPTS * (BTN_H + BTN_GAP)) + PAD
+
+-- ===== GUI =====
+local ScreenGui = Instance.new("ScreenGui")
+ScreenGui.Name = "VentisHubMenu"
+ScreenGui.ResetOnSpawn = false
+ScreenGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
+ScreenGui.IgnoreGuiInset = true
+ScreenGui.Parent = parentGui
+
+-- Frame principal
+local Frame = Instance.new("Frame")
+Frame.Name = "Main"
+Frame.Size = UDim2.new(0, WIDTH, 0, totalH)
+Frame.Position = UDim2.new(0, 30, 0, 30)
+Frame.BackgroundColor3 = C.bg
+Frame.BorderSizePixel = 0
+Frame.Active = true
+Frame.ClipsDescendants = true
+Frame.Parent = ScreenGui
+
+local outer = Instance.new("UIStroke")
+outer.Color = C.borderDark
+outer.Thickness = 2
+outer.Parent = Frame
+
+-- Borda interna clara (bevel do frame)
+local innerFrame = Instance.new("Frame")
+innerFrame.Size = UDim2.new(1, -4, 1, -4)
+innerFrame.Position = UDim2.new(0, 2, 0, 2)
+innerFrame.BackgroundTransparency = 1
+innerFrame.Parent = Frame
+local innerStroke = Instance.new("UIStroke")
+innerStroke.Color = C.borderLight
+innerStroke.Thickness = 1
+innerStroke.Parent = innerFrame
+
+-- ===== Title bar =====
+local TitleBar = Instance.new("Frame")
+TitleBar.Name = "TitleBar"
+TitleBar.Size = UDim2.new(1, -4, 0, TITLE_H)
+TitleBar.Position = UDim2.new(0, 2, 0, 2)
+TitleBar.BackgroundColor3 = C.bg
+TitleBar.BorderSizePixel = 0
+TitleBar.Active = true
+TitleBar.Parent = Frame
+
+local titleGrad = Instance.new("UIGradient")
+titleGrad.Color = ColorSequence.new{
+    ColorSequenceKeypoint.new(0.0, Color3.fromRGB(140, 140, 140)),
+    ColorSequenceKeypoint.new(0.5, Color3.fromRGB(232, 232, 232)),
+    ColorSequenceKeypoint.new(1.0, Color3.fromRGB(140, 140, 140)),
+}
+titleGrad.Parent = TitleBar
+
+-- Borda inferior da title bar
+local titleLine = Instance.new("Frame")
+titleLine.Size = UDim2.new(1, 0, 0, 1)
+titleLine.Position = UDim2.new(0, 0, 1, -1)
+titleLine.BackgroundColor3 = C.borderDark
+titleLine.BorderSizePixel = 0
+titleLine.Parent = TitleBar
+
+local Title = Instance.new("TextLabel")
+Title.Name = "Title"
+Title.Size = UDim2.new(1, -50, 1, 0)
+Title.Position = UDim2.new(0, 12, 0, 0)
+Title.BackgroundTransparency = 1
+Title.Text = "VENTIS HUB"
+Title.TextColor3 = C.textDark
+Title.Font = Enum.Font.Code
+Title.TextSize = 18
+Title.TextXAlignment = Enum.TextXAlignment.Left
+Title.ZIndex = 2
+Title.Parent = TitleBar
+
+-- Sombra do texto (efeito retrô)
+local TitleShadow = Title:Clone()
+TitleShadow.Name = "Shadow"
+TitleShadow.Position = UDim2.new(0, 13, 0, 1)
+TitleShadow.TextColor3 = Color3.fromRGB(255, 255, 255)
+TitleShadow.ZIndex = 1
+TitleShadow.Parent = TitleBar
+
+-- Botão fechar (X vermelho)
+local CloseBtn = Instance.new("TextButton")
+CloseBtn.Name = "Close"
+CloseBtn.Size = UDim2.new(0, 24, 0, 24)
+CloseBtn.Position = UDim2.new(1, -30, 0, 5)
+CloseBtn.BackgroundColor3 = C.red
+CloseBtn.Text = "X"
+CloseBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+CloseBtn.Font = Enum.Font.Code
+CloseBtn.TextSize = 16
+CloseBtn.BorderSizePixel = 0
+CloseBtn.AutoButtonColor = false
+CloseBtn.ZIndex = 3
+CloseBtn.Parent = TitleBar
+
+local closeStroke = Instance.new("UIStroke")
+closeStroke.Color = C.borderDark
+closeStroke.Thickness = 2
+closeStroke.Parent = CloseBtn
+
+local closeBevel = Instance.new("Frame")
+closeBevel.Size = UDim2.new(1, -4, 0, 1)
+closeBevel.Position = UDim2.new(0, 2, 0, 2)
+closeBevel.BackgroundColor3 = Color3.fromRGB(255, 160, 160)
+closeBevel.BorderSizePixel = 0
+closeBevel.ZIndex = 4
+closeBevel.Parent = CloseBtn
+
+CloseBtn.MouseButton1Click:Connect(function()
+    ScreenGui:Destroy()
+end)
+
+-- ===== Body (content) =====
+local Body = Instance.new("Frame")
+Body.Name = "Body"
+Body.Size = UDim2.new(1, -PAD * 2, 1, -TITLE_H - PAD - 2)
+Body.Position = UDim2.new(0, PAD, 0, TITLE_H + 4)
+Body.BackgroundColor3 = C.bgInset
+Body.BorderSizePixel = 0
+Body.Parent = Frame
+
+-- Borda "inset" do body (escura em cima, clara embaixo)
+local bodyStroke = Instance.new("UIStroke")
+bodyStroke.Color = C.borderDark
+bodyStroke.Thickness = 2
+bodyStroke.Parent = Body
+
+local bodyHi = Instance.new("Frame")
+bodyHi.Size = UDim2.new(1, -4, 0, 1)
+bodyHi.Position = UDim2.new(0, 2, 1, -3)
+bodyHi.BackgroundColor3 = C.borderLight
+bodyHi.BorderSizePixel = 0
+bodyHi.Parent = Body
+
+-- ===== Status =====
+local Status = Instance.new("TextLabel")
+Status.Size = UDim2.new(1, -12, 0, 18)
+Status.Position = UDim2.new(0, 6, 0, 4)
+Status.BackgroundTransparency = 1
+Status.Text = "Selecione um script:"
+Status.TextColor3 = C.yellow
+Status.Font = Enum.Font.Code
+Status.TextSize = 14
+Status.TextXAlignment = Enum.TextXAlignment.Left
+Status.TextTruncate = Enum.TextTruncate.AtEnd
+Status.ZIndex = 2
+Status.Parent = Body
+
+-- ===== Helper: botão bevelado estilo Win95 =====
+local function makeBevelButton(parent, size, pos)
+    local btn = Instance.new("TextButton")
+    btn.Size = size
+    btn.Position = pos
+    btn.BackgroundColor3 = C.btnHi
+    btn.BorderSizePixel = 0
+    btn.AutoButtonColor = false
+    btn.Text = ""
+    btn.ZIndex = 2
+    btn.Parent = parent
+
+    -- borda externa
+    local s = Instance.new("UIStroke")
+    s.Color = C.borderDark
+    s.Thickness = 2
+    s.Parent = btn
+
+    -- bevel (topo/esquerda claro, baixo/direita escuro)
+    local top = Instance.new("Frame")
+    top.Size = UDim2.new(1, -4, 0, 1)
+    top.Position = UDim2.new(0, 2, 0, 2)
+    top.BackgroundColor3 = C.bevelHi
+    top.BorderSizePixel = 0
+    top.ZIndex = 3
+    top.Parent = btn
+
+    local left = Instance.new("Frame")
+    left.Size = UDim2.new(0, 1, 1, -4)
+    left.Position = UDim2.new(0, 2, 0, 2)
+    left.BackgroundColor3 = C.bevelHi
+    left.BorderSizePixel = 0
+    left.ZIndex = 3
+    left.Parent = btn
+
+    local bottom = Instance.new("Frame")
+    bottom.Size = UDim2.new(1, -4, 0, 1)
+    bottom.Position = UDim2.new(0, 2, 1, -3)
+    bottom.BackgroundColor3 = C.bevelLo
+    bottom.BorderSizePixel = 0
+    bottom.ZIndex = 3
+    bottom.Parent = btn
+
+    local right = Instance.new("Frame")
+    right.Size = UDim2.new(0, 1, 1, -4)
+    right.Position = UDim2.new(1, -3, 0, 2)
+    right.BackgroundColor3 = C.bevelLo
+    right.BorderSizePixel = 0
+    right.ZIndex = 3
+    right.Parent = btn
+
+    -- label do texto (por cima)
+    local label = Instance.new("TextLabel")
+    label.Size = UDim2.new(1, 0, 1, 0)
+    label.BackgroundTransparency = 1
+    label.TextColor3 = C.textDark
+    label.Font = Enum.Font.Code
+    label.TextSize = 15
+    label.Text = ""
+    label.ZIndex = 4
+    label.Parent = btn
+
+    -- feedback visual ao pressionar
+    btn.MouseButton1Down:Connect(function()
+        btn.BackgroundColor3 = C.btnPressed
+        top.BackgroundColor3 = C.bevelLo
+        left.BackgroundColor3 = C.bevelLo
+        bottom.BackgroundColor3 = C.bevelHi
+        right.BackgroundColor3 = C.bevelHi
+    end)
+    local function restore()
+        btn.BackgroundColor3 = C.btnHi
+        top.BackgroundColor3 = C.bevelHi
+        left.BackgroundColor3 = C.bevelHi
+        bottom.BackgroundColor3 = C.bevelLo
+        right.BackgroundColor3 = C.bevelLo
+    end
+    btn.MouseButton1Up:Connect(restore)
+    btn.MouseLeave:Connect(restore)
+
+    return btn, label
+end
+
+-- ===== Botões dos scripts =====
+for i, s in ipairs(SCRIPTS) do
+    local y = 26 + (i - 1) * (BTN_H + BTN_GAP)
+    local btn, label = makeBevelButton(
+        Body,
+        UDim2.new(1, -12, 0, BTN_H),
+        UDim2.new(0, 6, 0, y)
+    )
+    label.Text = "▶ " .. s.nome
+
+    local originalText = label.Text
+    local loading = false
+
+    btn.MouseButton1Click:Connect(function()
+        if loading then return end
+        loading = true
+
+        label.Text = "⏳ Carregando..."
+        Status.Text = "Carregando: " .. s.nome
+
+        task.spawn(function()
+            local ok, err = pcall(function()
+                local src = game:HttpGet(s.url)
+                local fn  = loadstring(src)
+                if not fn then error("loadstring retornou nil") end
+                fn()
+            end)
+
+            if ok then
+                label.Text = "✔ " .. s.nome .. " [OK]"
+                label.TextColor3 = C.greenLo
+                Status.Text = s.nome .. " executado."
+                Status.TextColor3 = C.green
+            else
+                label.Text = "✖ ERRO"
+                label.TextColor3 = C.redLo
+                Status.Text = "Erro: " .. tostring(err)
+                Status.TextColor3 = Color3.fromRGB(255, 120, 120)
+                warn("[Ventis Hub] " .. tostring(err))
+            end
+
+            task.wait(2)
+            label.Text = originalText
+            label.TextColor3 = C.textDark
+            Status.Text = "Selecione um script:"
+            Status.TextColor3 = C.yellow
+            loading = false
+        end)
+    end)
+end
+
+-- ===== DRAG =====
+do
+    local UIS = game:GetService("UserInputService")
+    local dragging, dragStart, startPos
+
+    local function isButton(gui)
+        while gui and gui ~= Frame do
+            if gui:IsA("TextButton") or gui:IsA("ImageButton") then
+                return true
+            end
+            gui = gui.Parent
+        end
+        return false
+    end
+
+    local function begin(input)
+        if isButton(input.Target) then return end
+        dragging  = true
+        dragStart = input.Position
+        startPos  = Frame.Position
+    end
+
+    local function update(input)
+        if not dragging then return end
+        local d = input.Position - dragStart
+        Frame.Position = UDim2.new(
+            startPos.X.Scale, startPos.X.Offset + d.X,
+            startPos.Y.Scale, startPos.Y.Offset + d.Y
+        )
+    end
+
+    for _, gui in ipairs({Frame, TitleBar, Title, TitleShadow}) do
+        gui.InputBegan:Connect(function(input)
+            if input.UserInputType == Enum.UserInputType.MouseButton1
+            or input.UserInputType == Enum.UserInputType.Touch then
+                begin(input)
+            end
+        end)
+        gui.InputChanged:Connect(function(input)
+            if input.UserInputType == Enum.UserInputType.MouseMovement
+            or input.UserInputType == Enum.UserInputType.Touch then
+                update(input)
+            end
+        end)
+    end
+
+    UIS.InputEnded:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseButton1
+        or input.UserInputType == Enum.UserInputType.Touch then
+            dragging = false
+        end
+    end)
+end
