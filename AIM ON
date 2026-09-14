@@ -1,5 +1,5 @@
 -- ============================================================
--- VENTIS HUB - LOCK ON (Win95) | Bolinha retrô + janela independente
+-- VENTIS HUB - LOCK ON | Bolinha estilo Roblox (crosshair azul)
 -- Local: StarterPlayer > StarterPlayerScripts (LocalScript)
 -- ============================================================
 local Players          = game:GetService("Players")
@@ -24,6 +24,7 @@ local RET_COLOR  = Color3.fromRGB(60, 150, 255)
 local RET_ACCENT = Color3.fromRGB(130, 200, 255)
 local HL_FILL    = Color3.fromRGB(60, 150, 255)
 local HL_OUTLINE = Color3.fromRGB(180, 220, 255)
+local ICON_COLOR = Color3.fromRGB(80, 170, 255)
 
 -- ===== PALETA W95 =====
 local W95_BG        = Color3.fromRGB(192,192,192)
@@ -115,17 +116,101 @@ ScreenGui.IgnoreGuiInset = true
 ScreenGui.DisplayOrder = 999
 ScreenGui.Parent = Player:WaitForChild("PlayerGui")
 
--- ===== BOLINHA RETRÔ (independente) =====
-local Trigger = W95Btn(ScreenGui,
-    UDim2.new(0, 54, 0, 54),
-    UDim2.new(0, 20, 0, 100),
-    "⊕", 26, 10)
+-- ============================================================
+-- ============ BOLINHA (crosshair azul) ======================
+-- ============================================================
+local Trigger = Instance.new("TextButton")
+Trigger.Name = "Trigger"
+Trigger.AnchorPoint = Vector2.new(1, 0.5)
+Trigger.Size = UDim2.new(0, 60, 0, 60)
+Trigger.Position = UDim2.new(1, -22, 0.62, 0)
+Trigger.BackgroundColor3 = Color3.fromRGB(32, 32, 38)
+Trigger.BackgroundTransparency = 0.05
+Trigger.Text = ""
+Trigger.BorderSizePixel = 0
+Trigger.AutoButtonColor = false
+Trigger.ZIndex = 10
+Trigger.Active = true
+Trigger.Parent = ScreenGui
+Instance.new("UICorner", Trigger).CornerRadius = UDim.new(1, 0)
 
--- ===== JANELA (independente) =====
+local TrigStroke = Instance.new("UIStroke")
+TrigStroke.Color = Color3.fromRGB(70, 70, 80)
+TrigStroke.Thickness = 1
+TrigStroke.Transparency = 0.3
+TrigStroke.Parent = Trigger
+
+-- ===== Crosshair (4 braços em X + anel central) =====
+local IconHolder = Instance.new("Frame")
+IconHolder.Size = UDim2.new(0, 40, 0, 40)
+IconHolder.Position = UDim2.new(0.5, 0, 0.5, 0)
+IconHolder.AnchorPoint = Vector2.new(0.5, 0.5)
+IconHolder.BackgroundTransparency = 1
+IconHolder.ZIndex = 11
+IconHolder.Parent = Trigger
+
+local function MakeArm(rot)
+    local arm = Instance.new("Frame")
+    arm.Size = UDim2.new(0, 16, 0, 4)
+    arm.Position = UDim2.new(0.5, 0, 0.5, 0)
+    arm.AnchorPoint = Vector2.new(0, 0.5)
+    arm.Rotation = rot
+    arm.BackgroundColor3 = ICON_COLOR
+    arm.BorderSizePixel = 0
+    arm.ZIndex = 12
+    arm.Parent = IconHolder
+    Instance.new("UICorner", arm).CornerRadius = UDim.new(1, 0)
+
+    local tip = Instance.new("Frame")
+    tip.Size = UDim2.new(0, 4, 0, 4)
+    tip.Position = UDim2.new(1, -1, 0.5, 0)
+    tip.AnchorPoint = Vector2.new(0.5, 0.5)
+    tip.Rotation = 45
+    tip.BackgroundColor3 = ICON_COLOR
+    tip.BorderSizePixel = 0
+    tip.ZIndex = 12
+    tip.Parent = arm
+
+    return arm
+end
+
+MakeArm(-45)
+MakeArm(45)
+MakeArm(135)
+MakeArm(-135)
+
+local CenterRing = Instance.new("Frame")
+CenterRing.Size = UDim2.new(0, 12, 0, 12)
+CenterRing.Position = UDim2.new(0.5, 0, 0.5, 0)
+CenterRing.AnchorPoint = Vector2.new(0.5, 0.5)
+CenterRing.BackgroundTransparency = 1
+CenterRing.ZIndex = 13
+CenterRing.Parent = IconHolder
+Instance.new("UICorner", CenterRing).CornerRadius = UDim.new(1, 0)
+
+local CenterStroke = Instance.new("UIStroke")
+CenterStroke.Color = ICON_COLOR
+CenterStroke.Thickness = 2
+CenterStroke.Parent = CenterRing
+
+-- Lista de todas as peças do ícone pra trocar cor depois
+local IconParts = {}
+for _, child in ipairs(IconHolder:GetChildren()) do
+    if child:IsA("Frame") then
+        table.insert(IconParts, child)
+        for _, sub in ipairs(child:GetChildren()) do
+            if sub:IsA("Frame") then table.insert(IconParts, sub) end
+        end
+    end
+end
+
+-- ============================================================
+-- ============ JANELA ========================================
+-- ============================================================
 local Window = Instance.new("Frame")
 Window.Name = "Window"
 Window.Size = UDim2.new(0, 260, 0, 175)
-Window.Position = UDim2.new(0, 80, 0, 100)
+Window.Position = UDim2.new(0.5, -280, 0.5, -87)
 Window.BackgroundColor3 = W95_BG
 Window.BorderSizePixel = 0
 Window.Visible = true
@@ -133,7 +218,6 @@ Window.ZIndex = 5
 Window.Parent = ScreenGui
 AddBevel(Window, true)
 
--- Title bar
 local TitleBar = Instance.new("Frame")
 TitleBar.Size = UDim2.new(1,-6,0,22); TitleBar.Position = UDim2.new(0,3,0,3)
 TitleBar.BackgroundColor3 = W95_NAVY; TitleBar.BorderSizePixel = 0
@@ -171,11 +255,9 @@ local CloseBtn, CloseLbl = W95Btn(TitleBar, UDim2.new(0,18,0,16),
                                   UDim2.new(1,-20,0,3), "✕", 12, 8)
 CloseLbl.TextColor3 = W95_RED
 
--- Botão LOCK
 local EnableBtn, EnableLbl = W95Btn(Window,
     UDim2.new(1,-12, 0,28), UDim2.new(0,6,0,29), "LOCK: OFF", 14, 6)
 
--- Header MÓDULOS
 local ModHeader = Instance.new("Frame")
 ModHeader.Size = UDim2.new(1,-12,0,18); ModHeader.Position = UDim2.new(0,6,0,61)
 ModHeader.BackgroundColor3 = W95_NAVY; ModHeader.BorderSizePixel = 0
@@ -189,9 +271,9 @@ ModHeaderText.Font = Enum.Font.SourceSansBold
 ModHeaderText.TextSize = 12
 ModHeaderText.TextColor3 = W95_WHITE
 ModHeaderText.TextXAlignment = Enum.TextXAlignment.Left
-ModHeaderText.ZIndex = 7; ModHeaderText.Parent = ModHeader
+ModHeaderText.ZIndex = 7
+ModHeaderText.Parent = ModHeader
 
--- Lista
 local ModuleList = Sunken(Window, UDim2.new(1,-12,0,88), UDim2.new(0,6,0,81), W95_WHITE)
 ModuleList.ZIndex = 6
 
@@ -577,15 +659,22 @@ end
 -- ============================================================
 -- ============ ABRIR / FECHAR ================================
 -- ============================================================
+local function SetIconColor(color)
+    for _, part in ipairs(IconParts) do
+        if part:IsA("Frame") then
+            part.BackgroundColor3 = color
+        end
+    end
+    CenterStroke.Color = color
+end
+
 local function OpenWindow()
     Window.Visible = true
-    local lbl = Trigger:FindFirstChildOfClass("TextLabel")
-    if lbl then lbl.Text = "✕" end
+    SetIconColor(ICON_COLOR)
 end
 local function CloseWindow()
     Window.Visible = false
-    local lbl = Trigger:FindFirstChildOfClass("TextLabel")
-    if lbl then lbl.Text = "⊕" end
+    SetIconColor(Color3.fromRGB(150, 150, 160))
 end
 local function ToggleWindow()
     if Window.Visible then CloseWindow() else OpenWindow() end
@@ -597,7 +686,6 @@ end
 Trigger.MouseButton1Click:Connect(ToggleWindow)
 CloseBtn.MouseButton1Click:Connect(CloseWindow)
 
--- DRAG pela barra de título (SÓ move a janela)
 local dragActive, dragStart, winStart = false, nil, nil
 TitleBar.InputBegan:Connect(function(input)
     if input.UserInputType == Enum.UserInputType.Touch
@@ -627,23 +715,19 @@ UserInputService.InputEnded:Connect(function(input)
     if input.UserInputType == Enum.UserInputType.MouseButton1 then EndDrag() end
 end)
 
--- Toggle lock
 EnableBtn.MouseButton1Click:Connect(ToggleLockOn)
 
--- Mira
 RowMiraHit.MouseButton1Click:Connect(function()
     local n = currentReticle + 1
     if n > #RETICLE_NAMES then n = 1 end
     ApplyReticle(n)
 end)
 
--- Travar janela
 RowTravarHit.MouseButton1Click:Connect(function()
     Movable = not Movable
     RowTravarCheck.Visible = not Movable
 end)
 
--- Zoom hold
 local zoomHold = false
 local function StartZoomHold(d)
     ChangeZoom(d)
